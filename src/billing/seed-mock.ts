@@ -8,6 +8,8 @@ import {
   payments,
   subscriptions,
   users,
+  parked,
+  garageDailyOccupancy,
 } from '@/database/index';
 
 /**
@@ -25,16 +27,19 @@ async function seedMock() {
         name: 'Downtown Parking Garage',
         address: '123 Main St, San Francisco, CA 94102',
         stripeAccountId: 'acct_mock_downtown',
+        capacity: 600,
       },
       {
         name: 'Airport Long-term Parking',
         address: '456 Airport Blvd, San Francisco, CA 94128',
         stripeAccountId: 'acct_mock_airport',
+        capacity: 1200,
       },
       {
         name: 'Financial District Garage',
         address: '789 Market St, San Francisco, CA 94103',
         stripeAccountId: 'acct_mock_financial',
+        capacity: 450,
       },
     ];
 
@@ -50,7 +55,7 @@ async function seedMock() {
         console.log(`  ✓ Garage already exists: ${data.name}`);
         createdGarages.push(existing);
       } else {
-        const [garage] = await db.insert(garages).values(data).returning();
+        const [garage] = await db.insert(garages).values(data as any).returning();
         if (garage) {
           console.log(`  ✓ Created garage: ${data.name}`);
           createdGarages.push(garage);
@@ -445,8 +450,100 @@ async function seedMock() {
       }
     }
 
-    // Step 7: Create mock payments (3 months of history)
-    console.log('\n7️⃣ Creating payment history...');
+    // Step 7 & 8: Create 3 weeks of parked logs and daily occupancy
+    console.log('\n7️⃣ Creating 3-week parking and occupancy...');
+    const allUsers = await db.select().from(users);
+    const pickUserId = () => {
+      if (!allUsers.length) return undefined;
+      const idx = Math.floor(Math.random() * allUsers.length);
+      return allUsers[idx]!.id;
+    };
+
+    const days = 21;
+    let createdParked = 0;
+    let occupancyCreated = 0;
+
+    const generateHourly = (cap: number, date: Date) => {
+      const dayOfWeek = date.getDay();
+      return Array.from({ length: 24 }, (_, h) => {
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const peakBase = isWeekend ? 0.35 : 0.7;
+        const offBase = isWeekend ? 0.1 : 0.2;
+        let base = offBase;
+        if (h >= 7 && h < 10) base = offBase + (peakBase - offBase) * ((h - 7 + 1) / 4);
+        else if (h >= 10 && h < 16) base = peakBase;
+        else if (h >= 16 && h < 19) base = offBase + (peakBase - offBase) * ((19 - h) / 3);
+        const variance = (Math.random() - 0.5) * 0.1;
+        return Math.max(0, Math.min(cap, Math.floor(cap * (base + variance))));
+      });
+    };
+
+    for (const garage of createdGarages) {
+      const capacity = (garage as any).capacity ?? 200;
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      start.setDate(start.getDate() - (days - 1));
+
+      // Guard: if occupancy for start day exists, skip this garage
+      const [existingFirstDay] = await db
+        .select()
+        .from(garageDailyOccupancy)
+        .where(and(eq(garageDailyOccupancy.garageId as any, garage.id), eq(garageDailyOccupancy.day as any, start)))
+        .limit(1);
+      if (existingFirstDay) {
+        console.log(`  ↷ Skipping ${garage.name} (already seeded window)`);
+        continue;
+      }
+
+      for (let d = 0; d < days; d++) {
+        const day = new Date(start);
+        day.setDate(start.getDate() + d);
+
+        const hourly = generateHourly(capacity, day);
+        await db
+          .insert(garageDailyOccupancy)
+          .values({ garageId: garage.id, day, hourlyOccupancy: hourly } as any);
+        occupancyCreated++;
+
+        const numLogs = 40 + Math.floor(Math.random() * 100);
+        for (let i = 0; i < numLogs; i++) {
+          const hourWeights = hourly.map((v) => v + 1);
+          const total = hourWeights.reduce((a, b) => a + b, 0);
+          let r = Math.random() * total;
+          let chosenHour = 0;
+          for (let h = 0; h < 24; h++) {
+            const w = hourWeights[h] ?? 0;
+            if (r < w) { chosenHour = h; break; }
+            r -= w;
+          }
+          const enteredAt = new Date(day);
+          enteredAt.setHours(chosenHour, Math.floor(Math.random() * 60), 0, 0);
+
+          const willExit = Math.random() < 0.75;
+          let exitedAt: Date | null = null;
+          if (willExit) {
+            const durationHours = 1 + Math.floor(Math.random() * 6);
+            exitedAt = new Date(enteredAt.getTime() + durationHours * 60 * 60 * 1000);
+          }
+
+          const userId = pickUserId();
+          const [row] = await db
+            .insert(parked)
+            .values({
+              garageId: garage.id,
+              userId,
+              vehiclePlate: `MOCK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+              enteredAt,
+              ...(exitedAt && { exitedAt }),
+            } as any)
+            .returning();
+          if (row) createdParked++;
+        }
+      }
+    }
+
+    // Step 9: Create mock payments (3 months of history)
+    console.log('\n9️⃣ Creating payment history...');
     const allSubscriptions = await db.select().from(subscriptions);
     let paymentCount = 0;
 
@@ -506,6 +603,8 @@ async function seedMock() {
     console.log(`  - Garage Admins: ${createdGarageAdmins.length}`);
     console.log(`  - Regular Users: ${createdUsers.length}`);
     console.log(`  - Subscriptions: ${subscriptionCount}`);
+    console.log(`  - Parked Logs: ${createdParked}`);
+    console.log(`  - Daily Occupancy Records: ${occupancyCreated}`);
     console.log(`  - Payments: ${paymentCount}`);
   } catch (error) {
     console.error('\n❌ Seed failed:', error);

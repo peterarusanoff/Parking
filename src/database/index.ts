@@ -7,6 +7,8 @@ export {
   payments,
   subscriptions,
   users,
+  parked,
+  garageDailyOccupancy,
 } from './schema';
 export type {
   Garage,
@@ -24,5 +26,9 @@ export type {
   Subscription,
   User,
   UserRole,
+  Parked,
+  NewParked,
+  GarageDailyOccupancy,
+  NewGarageDailyOccupancy,
 } from './schema';
 

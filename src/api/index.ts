@@ -10,6 +10,7 @@ import {
   billingRoutes,
   garageRoutes,
   healthRoutes,
+  parkedRoutes,
   passRoutes,
   subscriptionRoutes,
   userRoutes,
@@ -33,6 +34,7 @@ const app = new Elysia()
         tags: [
           { name: 'health', description: 'Health check endpoints' },
           { name: 'admin', description: 'Garage admin endpoints (RBAC)' },
+          { name: 'parked', description: 'Parked vehicle logs' },
           { name: 'users', description: 'User management' },
           { name: 'garages', description: 'Garage management and analytics' },
           { name: 'passes', description: 'Pass management' },
@@ -75,6 +77,7 @@ const app = new Elysia()
   // Register all route modules
   .use(healthRoutes)
   .use(adminRoutes)
+  .use(parkedRoutes)
   .use(userRoutes)
   .use(garageRoutes)
   .use(passRoutes)

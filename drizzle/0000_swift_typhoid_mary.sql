@@ -1,12 +1,56 @@
 CREATE TYPE "public"."payment_status" AS ENUM('succeeded', 'failed', 'processing', 'canceled');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('active', 'past_due', 'canceled', 'unpaid', 'trialing');--> statement-breakpoint
+CREATE TYPE "public"."user_role" AS ENUM('user', 'garage_admin', 'super_admin');--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "garage_admins" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"garage_id" uuid NOT NULL,
+	"assigned_by" uuid,
+	"assigned_at" timestamp DEFAULT now() NOT NULL,
+	"permissions" text DEFAULT '{"view_reports": true, "manage_passes": true, "manage_subscriptions": true}' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "garage_daily_occupancy" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"garage_id" uuid NOT NULL,
+	"day" timestamp NOT NULL,
+	"hourly_occupancy" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "garages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"address" varchar(500) NOT NULL,
+	"capacity" integer DEFAULT 200 NOT NULL,
 	"stripe_account_id" varchar(255),
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "parked" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"garage_id" uuid NOT NULL,
+	"user_id" uuid,
+	"pass_id" uuid,
+	"vehicle_plate" varchar(32),
+	"entered_at" timestamp DEFAULT now() NOT NULL,
+	"exited_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "pass_price_history" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"pass_id" uuid NOT NULL,
+	"old_price" numeric(10, 2),
+	"new_price" numeric(10, 2) NOT NULL,
+	"old_stripe_price_id" varchar(255),
+	"new_stripe_price_id" varchar(255),
+	"changed_by" varchar(255),
+	"change_reason" text,
+	"effective_date" timestamp DEFAULT now() NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "passes" (
@@ -51,6 +95,9 @@ CREATE TABLE IF NOT EXISTS "subscriptions" (
 	"cancel_at_period_end" boolean DEFAULT false NOT NULL,
 	"canceled_at" timestamp,
 	"monthly_amount" numeric(10, 2) NOT NULL,
+	"renewal_status" varchar(50) DEFAULT 'pending',
+	"renewal_attempted_at" timestamp,
+	"next_renewal_date" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "subscriptions_stripe_subscription_id_unique" UNIQUE("stripe_subscription_id")
@@ -63,10 +110,59 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"email" varchar(255) NOT NULL,
 	"phone" varchar(50),
 	"stripe_customer_id" varchar(255),
+	"role" "user_role" DEFAULT 'user' NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "garage_admins" ADD CONSTRAINT "garage_admins_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "garage_admins" ADD CONSTRAINT "garage_admins_garage_id_garages_id_fk" FOREIGN KEY ("garage_id") REFERENCES "public"."garages"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "garage_admins" ADD CONSTRAINT "garage_admins_assigned_by_users_id_fk" FOREIGN KEY ("assigned_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "garage_daily_occupancy" ADD CONSTRAINT "garage_daily_occupancy_garage_id_garages_id_fk" FOREIGN KEY ("garage_id") REFERENCES "public"."garages"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "parked" ADD CONSTRAINT "parked_garage_id_garages_id_fk" FOREIGN KEY ("garage_id") REFERENCES "public"."garages"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "parked" ADD CONSTRAINT "parked_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "parked" ADD CONSTRAINT "parked_pass_id_passes_id_fk" FOREIGN KEY ("pass_id") REFERENCES "public"."passes"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "pass_price_history" ADD CONSTRAINT "pass_price_history_pass_id_passes_id_fk" FOREIGN KEY ("pass_id") REFERENCES "public"."passes"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "passes" ADD CONSTRAINT "passes_garage_id_garages_id_fk" FOREIGN KEY ("garage_id") REFERENCES "public"."garages"("id") ON DELETE cascade ON UPDATE no action;
@@ -104,7 +200,17 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "garage_admins_user_idx" ON "garage_admins" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "garage_admins_garage_idx" ON "garage_admins" USING btree ("garage_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "garage_admins_user_garage_unique" ON "garage_admins" USING btree ("user_id","garage_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "garage_daily_occupancy_garage_idx" ON "garage_daily_occupancy" USING btree ("garage_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "garage_daily_occupancy_day_idx" ON "garage_daily_occupancy" USING btree ("day");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "garages_stripe_account_idx" ON "garages" USING btree ("stripe_account_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "parked_garage_idx" ON "parked" USING btree ("garage_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "parked_entered_idx" ON "parked" USING btree ("entered_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "parked_exited_idx" ON "parked" USING btree ("exited_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "pass_price_history_pass_idx" ON "pass_price_history" USING btree ("pass_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "pass_price_history_effective_date_idx" ON "pass_price_history" USING btree ("effective_date");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "passes_garage_idx" ON "passes" USING btree ("garage_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "passes_active_idx" ON "passes" USING btree ("active");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "passes_stripe_product_idx" ON "passes" USING btree ("stripe_product_id");--> statement-breakpoint
