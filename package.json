@@ -1,0 +1,49 @@
+{
+  "name": "vend-assessment",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/api/index.ts",
+    "dev:web": "cd web && bun dev",
+    "build": "bun build src/api/index.ts --outdir dist --target bun",
+    "build:web": "cd web && bun run build",
+    "build:binary": "bun build src/api/index.ts --compile --outfile vend-api",
+    "build:cluster": "bun build src/api/cluster.ts --compile --outfile vend-cluster",
+    "start": "NODE_ENV=production bun run dist/index.js",
+    "start:binary": "./vend-api",
+    "start:cluster": "./vend-cluster",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:rbac": "bun run scripts/apply-rbac-migration.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "seed": "bun run src/billing/seed.ts",
+    "seed:mock": "bun run src/billing/seed-mock.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.1.1",
+    "@elysiajs/openapi": "^1.1.4",
+    "@elysiajs/swagger": "^1.3.1",
+    "drizzle-orm": "^0.36.4",
+    "elysia": "^1.1.29",
+    "postgres": "^3.4.5",
+    "stripe": "^17.5.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "drizzle-kit": "^0.28.1",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.7.2"
+  }
+}

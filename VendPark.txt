@@ -1,0 +1,144 @@
+⚙️ Vend Technical Assessment
+"Billing, Subscriptions & Multi-Tenant Reporting Architecture"
+
+🧬 Overview
+Vend provides monthly parking passes for drivers at various garages.
+
+Your task is to design and prototype a billing and reporting foundation for this system — focusing on:
+
+Data modeling
+Billing logic and lifecycle
+Reporting design for both Vend leadership and garage admins
+(Bonus) Optional visual reporting in React using shadcn/ui
+
+You'll evolve simple models into a billing-ready system, implement mock billing logic in TypeScript, and design a reporting architecture that supports multi-tenant data visibility.
+
+Estimated time: 3–5 hours
+
+Technology Stack - Please use the following technology stack. You may choose to use something else if you provide a decent explanation:
+
+Bun
+Typescript
+React
+Vite
+Shadcn UI
+Any backend database and server solution of your choice
+
+
+
+🛡️ Part 1: Base Models
+You start with three core entities:
+
+// User
+{
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+// Garage
+{
+  id: string;
+  name: string;
+}
+
+// Pass
+{
+  id: string;
+  name: string;
+  description: string;
+}
+
+
+🤠 Part 2: Extend for Billing
+Vend wants users to purchase monthly passes for specific garages.
+Your Task
+Update or add models to support recurring billing. Consider:
+
+How a pass becomes a priced product.
+How a user subscribes to a pass.
+What attributes are needed to track pricing, payment status, renewals, and cancellations.
+How garage admins can view data only for their own garages.
+
+Show your final set of models (TypeScript interfaces or an ER diagram).
+
+Describe your billing lifecycle — what happens when a user purchases, renews, or cancels a pass.
+
+🔹 You do not need to integrate with Stripe or any live service. You can mock data and API calls to simulate billing behavior.
+
+🤓 Focus: schema design, lifecycle understanding, scalability.
+
+
+💻 Part 3: Implementation (TypeScript)
+Implement minimal TypeScript code that demonstrates:
+
+A function to create a pass with a monthly price.
+
+createGaragePass(passId: string, monthlyPrice: number)
+
+A function to simulate subscribing a user to a pass.
+
+subscribeUserToPass(userId: string, passId: string)
+
+A function to generate a simple revenue report that aggregates subscription data by garage.
+
+Example (mocked) output:
+
+[
+  {
+    "garage": "Harwood No. 10",
+    "activeSubscriptions": 12,
+    "monthlyRevenue": 1800
+  },
+  {
+    "garage": "Skyline Garage",
+    "activeSubscriptions": 7,
+    "monthlyRevenue": 1050
+  }
+]
+
+🔹 You can use hardcoded or generated mock data for users, passes, and subscriptions. No database or API integration is required — focus on clean, well-typed logic.
+
+
+🗾 Part 4: Data Warehouse & Reporting Design
+Vend's leadership and garage admins both need reporting, but with different scopes of visibility.
+Your Task
+Propose a data warehouse schema (e.g., Snowflake-style) that supports both global and per-garage reporting.
+
+Include the fact and dimension tables you'd create.
+Explain how your schema supports access control and freshness.
+
+Outline a high-level data flow from source data → warehouse → dashboard.
+
+Design and describe the reports or dashboards you believe would be most valuable for these two types of users.
+
+You decide what metrics or KPIs to track and visualize.
+Consider financial, operational, and usage-based insights.
+
+🤓 Focus: data modeling, analytics intuition, and multi-tenant reporting design.
+
+
+🎨 Bonus (Optional Front-End Visualization)
+If you have time, build a simple React + shadcn/ui component that visualizes one or more of your reports.
+
+You may use Recharts, Chart.js, or similar.
+Keep styling clean and focused on readability.
+This is entirely optional and will be treated as a bonus.
+
+🤓 Focus: full-stack perspective and clear data presentation.
+
+
+📦 Deliverables
+models.ts — updated and/or new data models
+billing.ts — mock billing logic and TypeScript examples
+reporting.md — warehouse schema + your chosen reports/dashboards
+(Optional) dashboard.tsx — simple chart or widget component
+README.md — setup, design reasoning, and sample output
+
+
+⏱️ Expected Duration
+3–5 hours total.
+
+Focus on clarity, reasoning, and design choices — not completeness or production-level detail. Mocked logic and example data are completely acceptable.

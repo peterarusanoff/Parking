@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    // Type checking - MAXIMUM safety
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // Language and Environment
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    // Emit
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "removeComments": false,
+    "importHelpers": true,
+    "noEmit": false,
+
+    // Interop Constraints
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    // Skip Lib Check for faster builds
+    "skipLibCheck": true,
+
+    // Path Mapping
+    "baseUrl": ".",
+    "paths": {
+      "@/env": ["./src/env"],
+      "@/database/*": ["./src/database/*"],
+      "@/billing/*": ["./src/billing/*"],
+      "@/shared/*": ["./src/shared/*"],
+      "@/api/*": ["./src/api/*"]
+    },
+
+    // Additional
+    "resolveJsonModule": true,
+    "allowJs": false
+  },
+  "exclude": ["node_modules", "dist", ".turbo", "web"]
+}
