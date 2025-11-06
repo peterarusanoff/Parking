@@ -423,7 +423,7 @@ Test endpoints directly from the browser with real data and see actual API respo
 
 ## 📊 Data Warehouse Architecture
 
-See `docs/reporting.md` for complete Snowflake + DBT design including:
+See [`docs/reporting.md`](https://github.com/peterarusanoff/Parking/blob/main/docs/architecture.md) for complete Snowflake + DBT design including:
 
 - ETL pipeline architecture
 - Dimensional modeling (star schema)
@@ -534,23 +534,6 @@ bun run start:cluster       # Run cluster binary
 - ✅ P&L visualization with Recharts
 - ✅ React Query for data fetching
 
-## 🚧 Future Enhancements
-
-### Immediate (Production Ready)
-
-- [ ] Stripe webhook handlers
-- [ ] Payment failure retry logic
-- [ ] Subscription cancellation API
-- [ ] Email notifications
-- [ ] Unit & integration tests
-
-### Advanced Features
-
-- [ ] Real-time WebSocket updates
-- [ ] ML-based revenue forecasting
-- [ ] Row-level security (RLS) in PostgreSQL
-- [ ] GraphQL API layer
-- [ ] Mobile app (React Native)
 
 ## 📝 License
 
