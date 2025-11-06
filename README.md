@@ -85,42 +85,48 @@ vend-assessment/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd VendPark
    ```
 
 2. **Install dependencies**
+
    ```bash
    bun install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    # Create .env file in the root
    cp .env.example .env
-   
+
    # Add your Stripe test keys
    STRIPE_SECRET_KEY=sk_test_...
    DATABASE_URL=postgresql://vend:vend_dev_pass@localhost:5432/vend_assessment
    ```
 
 4. **Start PostgreSQL**
+
    ```bash
    docker-compose up -d
    ```
 
 5. **Run database migrations**
+
    ```bash
    bun run db:generate
    bun run db:migrate
    ```
 
 6. **Seed the database with mock data**
+
    ```bash
    bun run seed:mock
    ```
-   
+
    This creates:
    - 3 garages
    - 9 passes (3 tiers per garage)
@@ -129,11 +135,13 @@ vend-assessment/
    - 82 payment records (3-6 months history)
 
 7. **Start the API server**
+
    ```bash
    bun run dev
    ```
 
 8. **Start the React dashboard** (in a new terminal)
+
    ```bash
    bun run dev:web
    ```
@@ -159,9 +167,11 @@ Returns API status and uptime.
 ```
 POST /api/billing/pass
 ```
+
 Creates a garage pass with Stripe product/price.
 
 **Request Body:**
+
 ```json
 {
   "passId": "uuid",
@@ -175,9 +185,11 @@ Creates a garage pass with Stripe product/price.
 ```
 POST /api/billing/subscribe
 ```
+
 Subscribes a user to a parking pass.
 
 **Request Body:**
+
 ```json
 {
   "userId": "uuid",
@@ -188,9 +200,11 @@ Subscribes a user to a parking pass.
 ```
 GET /api/billing/report
 ```
+
 Generates revenue report by garage.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -198,7 +212,7 @@ Generates revenue report by garage.
     {
       "garage": "Downtown Parking Garage",
       "activeSubscriptions": 15,
-      "monthlyRevenue": 3750.00
+      "monthlyRevenue": 3750.0
     }
   ]
 }
@@ -209,13 +223,16 @@ Generates revenue report by garage.
 ```
 GET /api/garages/:garageId/pl
 ```
+
 Returns P&L data for specific garage with date filtering.
 
 **Query Parameters:**
+
 - `startDate` (optional): ISO date string
 - `endDate` (optional): ISO date string
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -230,7 +247,7 @@ Returns P&L data for specific garage with date filtering.
       "endDate": "2025-11-05T00:00:00.000Z"
     },
     "financials": {
-      "totalRevenue": 6012.00,
+      "totalRevenue": 6012.0,
       "totalFees": 184.54,
       "netRevenue": 5827.46,
       "paymentCount": 34
@@ -242,9 +259,11 @@ Returns P&L data for specific garage with date filtering.
 ```
 GET /api/garages/:garageId/metrics
 ```
+
 Returns real-time KPIs for garage dashboard.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -255,7 +274,7 @@ Returns real-time KPIs for garage dashboard.
     },
     "metrics": {
       "activeSubscriptions": 8,
-      "monthlyRecurringRevenue": 1378.00,
+      "monthlyRecurringRevenue": 1378.0,
       "currentMonthPayments": 8,
       "currentMonthRevenue": 1335.64
     }
@@ -322,6 +341,7 @@ users ──< subscriptions >── passes >── garages
 ### Indexes
 
 All tables optimized with indexes on:
+
 - Foreign keys (garage_id, user_id, etc.)
 - Status fields
 - Date fields
@@ -353,6 +373,33 @@ This project uses **maximum TypeScript strictness** for ultimate type safety:
 2. **Type Safety** - End-to-end type inference from request to response
 3. **Developer Experience** - Auto-generated OpenAPI documentation
 4. **Modern** - Latest web standards and best practices
+
+#### Interactive API Documentation
+
+ElysiaJS automatically generates beautiful, interactive Swagger/OpenAPI documentation. Access it at `http://localhost:3000/swagger` when running the server.
+
+**Main API Overview**
+
+![Swagger API Overview](docs/images/swagger-overview.png)
+
+The auto-generated documentation provides a complete overview of all available endpoints, organized by category (health, parked, users, garages, passes, subscriptions, billing).
+
+**Interactive Endpoint Testing**
+
+![Swagger Endpoint Detail](docs/images/swagger-endpoint-detail.png)
+
+Each endpoint includes:
+
+- Full request/response schemas
+- Query parameter definitions with types
+- Interactive "Try it out" functionality
+- Real-time request/response examples
+
+**Live Response Examples**
+
+![Swagger Response Example](docs/images/swagger-response-example.png)
+
+Test endpoints directly from the browser with real data and see actual API responses, making development and debugging incredibly efficient.
 
 ### Why Drizzle ORM?
 
@@ -445,36 +492,42 @@ bun run start:cluster       # Run cluster binary
 ## ✅ Project Status
 
 ### Phase 1: Project Setup ✅
+
 - ✅ Single `package.json` architecture
 - ✅ TypeScript with maximum strictness
 - ✅ Environment variable management with Zod
 - ✅ Path aliases and project structure
 
 ### Phase 2: Database Package ✅
+
 - ✅ Drizzle ORM with PostgreSQL
 - ✅ 5 tables with full relationships
 - ✅ Automatic migrations
 - ✅ Type-safe queries
 
 ### Phase 3: ElysiaJS API ✅
+
 - ✅ 6 production-ready endpoints
 - ✅ Swagger/OpenAPI documentation
 - ✅ Request/response validation
 - ✅ Error handling & logging
 
 ### Phase 4: Stripe Integration ✅
+
 - ✅ Product & price creation
 - ✅ Customer management
 - ✅ Subscription lifecycle
 - ✅ Payment processing
 
 ### Phase 5: Snowflake/DBT Design ✅
+
 - ✅ Star schema data model
 - ✅ ETL pipeline architecture
 - ✅ Multi-tenant access control
 - ✅ P&L reporting models
 
 ### Phase 6: React Dashboard ✅
+
 - ✅ Vite + React + TypeScript
 - ✅ Multi-garage selector
 - ✅ Real-time metrics cards
@@ -484,6 +537,7 @@ bun run start:cluster       # Run cluster binary
 ## 🚧 Future Enhancements
 
 ### Immediate (Production Ready)
+
 - [ ] Stripe webhook handlers
 - [ ] Payment failure retry logic
 - [ ] Subscription cancellation API
@@ -491,6 +545,7 @@ bun run start:cluster       # Run cluster binary
 - [ ] Unit & integration tests
 
 ### Advanced Features
+
 - [ ] Real-time WebSocket updates
 - [ ] ML-based revenue forecasting
 - [ ] Row-level security (RLS) in PostgreSQL
@@ -508,4 +563,3 @@ Built with ❤️ for Vend Technical Assessment
 ---
 
 **Questions?** Open an issue or reach out to the team.
-
