@@ -441,6 +441,11 @@ bun run typecheck           # Type check TypeScript
 bun run lint                # Lint code
 bun run format              # Format with Prettier
 
+# Testing
+bun run test                # Run all tests
+bun run test:e2e            # Run E2E tests only
+bun run test:watch          # Run tests in watch mode
+
 # Database
 bun run db:generate         # Generate migrations from schema
 bun run db:push             # Push schema to database
@@ -460,6 +465,52 @@ bun run start               # Start built API
 bun run start:binary        # Run binary
 bun run start:cluster       # Run cluster binary
 ```
+
+## 🧪 Testing
+
+### Comprehensive E2E Test Coverage
+
+The project includes a complete end-to-end test suite covering all API routes and user flows.
+
+**Test Coverage:**
+
+- ✅ 100+ test cases
+- ✅ All 40+ API endpoints tested
+- ✅ Complete user journey flows
+- ✅ RBAC and admin operations
+- ✅ Error handling and validation
+- ✅ Real database and Stripe integration tests
+
+**Running Tests:**
+
+```bash
+# Ensure API server is running
+bun run dev
+
+# Run all tests
+bun test
+
+# Run E2E tests only
+bun test:e2e
+
+# Watch mode
+bun test:watch
+```
+
+**Test Structure:**
+
+1. Health checks
+2. Garage management (CRUD)
+3. User management with Stripe
+4. Pass creation and pricing
+5. Subscriptions and billing
+6. Parked vehicle tracking
+7. Analytics and reports
+8. Admin/RBAC operations
+9. Complete user flows
+10. Error handling
+
+See `tests/README.md` for detailed documentation.
 
 ## 🔒 Security Best Practices
 
