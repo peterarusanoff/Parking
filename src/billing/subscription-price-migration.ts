@@ -8,8 +8,8 @@ import { stripe } from './stripe-client';
 export interface MigrationResult {
   subscriptionId: string;
   userId: string;
-  oldPrice: string;
-  newPrice: string;
+  oldPrice: number;
+  newPrice: number;
   oldStripePriceId: string;
   newStripePriceId: string;
   status: 'migrated' | 'failed' | 'skipped';
@@ -59,8 +59,8 @@ export async function migrateSubscriptionToCurrentPrice(
         data: {
           subscriptionId: subscription.id,
           userId: subscription.userId,
-          oldPrice: subscription.monthlyAmount,
-          newPrice: pass.monthlyAmount,
+          oldPrice: subscription.monthlyAmount as unknown as number,
+          newPrice: pass.monthlyAmount as unknown as number,
           oldStripePriceId: subscription.stripePriceId || '',
           newStripePriceId: pass.stripePriceId || '',
           status: 'skipped',
@@ -98,8 +98,8 @@ export async function migrateSubscriptionToCurrentPrice(
     }
 
     // 5. Update in our database
-    const oldPrice = subscription.monthlyAmount;
-    const newPrice = pass.monthlyAmount;
+    const oldPrice = subscription.monthlyAmount as unknown as number;
+    const newPrice = pass.monthlyAmount as unknown as number;
     const oldStripePriceId = subscription.stripePriceId || '';
 
     await db
@@ -112,7 +112,7 @@ export async function migrateSubscriptionToCurrentPrice(
       .where(eq(subscriptions.id, subscriptionId));
 
     console.log(
-      `✓ Migrated subscription ${subscriptionId}: $${oldPrice} → $${newPrice}`
+      `✓ Migrated subscription ${subscriptionId} (cents): ${oldPrice} → ${newPrice}`
     );
 
     return {
@@ -164,8 +164,8 @@ export async function migrateAllSubscriptionsForPass(
         results.push({
           subscriptionId: subscription.id,
           userId: subscription.userId,
-          oldPrice: subscription.monthlyAmount,
-          newPrice: subscription.monthlyAmount,
+          oldPrice: subscription.monthlyAmount as unknown as number,
+          newPrice: subscription.monthlyAmount as unknown as number,
           oldStripePriceId: subscription.stripePriceId || '',
           newStripePriceId: subscription.stripePriceId || '',
           status: 'failed',

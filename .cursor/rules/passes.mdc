@@ -1,0 +1,21 @@
+## Route: passes
+
+- Base path: `/api/passes`
+- Purpose: Manage passes and pricing; propagate price changes.
+- Key behaviors:
+  - PUT `/:id` uses `updatePassPrice`:
+    - Creates new Stripe price, archives old price.
+    - Writes to `passPriceHistory` with `changedBy` and `changeReason`.
+    - Migrates existing active subscriptions to the new price (default).
+  - GET `/:id/price-history` returns full price history.
+- Endpoints (typical):
+  - `GET /api/passes` – list passes.
+  - `POST /api/passes` – create pass (Stripe integration).
+  - `GET /api/passes/:id` – get pass.
+  - `PUT /api/passes/:id` – update pass price/details.
+  - `GET /api/passes/:id/price-history` – price change history.
+- Type safety:
+  - Convert `monthlyAmount` to string for DB decimal.
+  - Validate request body with `t.Object(...)`.
+
+

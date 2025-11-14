@@ -259,14 +259,14 @@ describe('End-to-End API Tests', () => {
         garageId: testData.garage1Id,
         name: 'Basic Monthly Pass',
         description: 'Standard parking spot',
-        monthlyAmount: 100.0,
+        monthlyAmount: 10000,
         active: true,
       });
 
       expect(response.status).toBe(201);
       expect(response.data.success).toBe(true);
       expect(response.data.data.name).toBe('Basic Monthly Pass');
-      expect(response.data.data.monthlyAmount).toBe('100.00');
+      expect(response.data.data.monthlyAmount).toBe(10000);
 
       testData.pass1Id = response.data.data.id;
     });
@@ -276,7 +276,7 @@ describe('End-to-End API Tests', () => {
         garageId: testData.garage1Id,
         name: 'Premium Monthly Pass',
         description: 'Reserved spot with EV charging',
-        monthlyAmount: 250.0,
+        monthlyAmount: 25000,
         active: true,
       });
 
@@ -291,7 +291,7 @@ describe('End-to-End API Tests', () => {
         garageId: testData.garage2Id,
         name: 'Airport Economy Pass',
         description: 'Long-term airport parking',
-        monthlyAmount: 150.0,
+        monthlyAmount: 15000,
         active: true,
       });
 
@@ -341,7 +341,7 @@ describe('End-to-End API Tests', () => {
         'PUT',
         `/api/passes/${testData.pass1Id}`,
         {
-          monthlyAmount: 120.0,
+          monthlyAmount: 12000,
           changedBy: 'test-admin',
           changeReason: 'Market adjustment',
         }
@@ -349,10 +349,10 @@ describe('End-to-End API Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.data.success).toBe(true);
-      expect(response.data.data.pass.monthlyAmount).toBe('120.00');
+      expect(response.data.data.pass.monthlyAmount).toBe(12000);
       expect(response.data.data.priceChange).toBeDefined();
-      expect(response.data.data.priceChange.oldPrice).toBe('100.00');
-      expect(response.data.data.priceChange.newPrice).toBe('120.00');
+      expect(response.data.data.priceChange.oldPrice).toBe(10000);
+      expect(response.data.data.priceChange.newPrice).toBe(12000);
     });
 
     test('GET /api/passes/:id/price-history - should get price history', async () => {
@@ -378,7 +378,7 @@ describe('End-to-End API Tests', () => {
         garageId: testData.garage1Id,
         name: 'Premium Monthly Pass (Stripe)',
         description: 'Premium parking with Stripe integration',
-        monthlyPrice: 250.0,
+        monthlyPriceCents: 25000,
       });
 
       expect(response.status).toBe(201);
@@ -431,7 +431,7 @@ describe('End-to-End API Tests', () => {
         garageId: testData.garage2Id,
         passId: testData.pass3Id,
         status: 'active',
-        monthlyAmount: 150.0,
+        monthlyAmount: 15000,
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: nextMonth.toISOString(),
       });
@@ -717,7 +717,7 @@ describe('End-to-End API Tests', () => {
           role: 'super_admin',
         })
         .returning();
-      testData.superAdminId = superAdmin.id;
+      testData.superAdminId = superAdmin!.id;
 
       // Create a garage admin user
       const [garageAdmin] = await db
@@ -729,7 +729,7 @@ describe('End-to-End API Tests', () => {
           role: 'garage_admin',
         })
         .returning();
-      testData.adminUserId = garageAdmin.id;
+      testData.adminUserId = garageAdmin!.id;
     });
 
     test('POST /api/admin/garage-admins - should assign garage admin (super admin only)', async () => {
@@ -1037,7 +1037,7 @@ describe('End-to-End API Tests', () => {
         garageId: flowGarageId,
         name: 'Flow Test Pass',
         description: 'Test pass for flow',
-        monthlyAmount: 175.0,
+        monthlyAmount: 17500,
         active: true,
       });
 
@@ -1070,7 +1070,7 @@ describe('End-to-End API Tests', () => {
         garageId: flowGarageId,
         passId: flowPassId,
         status: 'active',
-        monthlyAmount: 175.0,
+        monthlyAmount: 17500,
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: nextMonth.toISOString(),
       });

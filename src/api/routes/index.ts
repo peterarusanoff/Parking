@@ -7,4 +7,5 @@ export { parkedRoutes } from './parked';
 export { passRoutes } from './passes';
 export { subscriptionRoutes } from './subscriptions';
 export { userRoutes } from './users';
+export { webhookRoutes } from './webhooks';
 

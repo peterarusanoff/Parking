@@ -1,0 +1,19 @@
+## Route: parked
+
+- Base path: `/api/parked`
+- Purpose: Log vehicle entries/exits and maintain hourly occupancy.
+- Key behaviors:
+  - `POST /api/parked` – creates a parked entry (enter event):
+    - Validates garage (and user/pass if provided).
+    - Inserts event; increments `garageDailyOccupancy.hourlyOccupancy[enteredHour]`.
+  - `PUT /api/parked/:id` – updates parked entry (exit event):
+    - If `exitedAt` transitions from null → timestamp, decrements `hourlyOccupancy[exitHour]`.
+  - GET endpoints for lists and single entries (optional filters: `garageId`, `active`).
+- Data integrity:
+  - Occupancy creation upserts by day (midnight) if missing.
+  - Clamps occupancy to >= 0.
+- Guidance:
+  - Consider adding capacity cap enforcement if needed.
+  - Associate `userId` where possible for analytics.
+
+

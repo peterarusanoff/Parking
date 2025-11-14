@@ -8,7 +8,7 @@ import { stripe } from './stripe-client';
 
 export interface UpdatePassPriceParams {
   passId: string;
-  newPrice: number;
+  newPriceCents: number;
   changedBy?: string;
   changeReason?: string;
   effectiveDate?: Date;
@@ -20,8 +20,8 @@ export interface PriceUpdateResult {
   priceHistory: {
     id: string;
     passId: string;
-    oldPrice: string | null;
-    newPrice: string;
+    oldPrice: number | null;
+    newPrice: number;
     oldStripePriceId: string | null;
     newStripePriceId: string | null;
     changedBy: string | null;
@@ -29,8 +29,8 @@ export interface PriceUpdateResult {
     effectiveDate: Date;
     createdAt: Date;
   };
-  oldPrice: string;
-  newPrice: string;
+  oldPrice: number;
+  newPrice: number;
   newStripePriceId?: string;
   subscriptionsMigrated?: {
     total: number;
@@ -66,11 +66,11 @@ export async function updatePassPrice(
       };
     }
 
-    const oldPrice = currentPass.monthlyAmount;
-    const newPrice = params.newPrice.toFixed(2);
+    const oldPrice = currentPass.monthlyAmount as unknown as number;
+    const newPrice = params.newPriceCents;
 
     // Check if price actually changed
-    if (parseFloat(oldPrice) === params.newPrice) {
+    if (oldPrice === params.newPriceCents) {
       return {
         success: false,
         error: new Error('New price is the same as current price'),
@@ -85,13 +85,13 @@ export async function updatePassPrice(
         const stripePrice = await stripe.prices.create({
           product: currentPass.stripeProductId,
           currency: 'usd',
-          unit_amount: Math.round(params.newPrice * 100), // Convert to cents
+          unit_amount: params.newPriceCents,
           recurring: {
             interval: 'month',
           },
           metadata: {
             passId: currentPass.id,
-            previousPrice: oldPrice,
+            previousPrice: String(oldPrice),
             priceChangeDate: new Date().toISOString(),
           },
         });
@@ -149,9 +149,7 @@ export async function updatePassPrice(
       throw new Error('Failed to update pass or create history record');
     }
 
-    console.log(
-      `✓ Updated pass ${params.passId} price: $${oldPrice} → $${newPrice}${newStripePriceId ? ` (Stripe: ${newStripePriceId})` : ''}`
-    );
+    console.log(`✓ Updated pass ${params.passId} price (cents): ${oldPrice} → ${newPrice}${newStripePriceId ? ` (Stripe: ${newStripePriceId})` : ''}`);
 
     // 6. Migrate existing subscriptions to new price (unless explicitly skipped)
     let migrationResults;

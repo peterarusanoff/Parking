@@ -28,7 +28,7 @@ export const billingRoutes = new Elysia({ prefix: '/api/billing' })
         garageId: t.String({ format: 'uuid' }),
         name: t.String({ minLength: 1, maxLength: 255 }),
         description: t.String({ maxLength: 1000 }),
-        monthlyPrice: t.Number({ minimum: 0.01 }),
+        monthlyPriceCents: t.Integer({ minimum: 1 }),
       }),
       detail: {
         tags: ['billing'],

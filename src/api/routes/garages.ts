@@ -354,9 +354,9 @@ export const garageRoutes = new Elysia({ prefix: '/api/garages' })
             endDate: endDate.toISOString(),
           },
           financials: {
-            totalRevenue: parseFloat(data?.totalRevenue || '0'),
-            totalFees: parseFloat(data?.totalFees || '0'),
-            netRevenue: parseFloat(data?.totalNet || '0'),
+            totalRevenue: Number(data?.totalRevenue || 0),
+            totalFees: Number(data?.totalFees || 0),
+            netRevenue: Number(data?.totalNet || 0),
             paymentCount: data?.paymentCount || 0,
           },
         });
@@ -443,13 +443,9 @@ export const garageRoutes = new Elysia({ prefix: '/api/garages' })
           },
           metrics: {
             activeSubscriptions: subData?.activeSubscriptions || 0,
-            monthlyRecurringRevenue: parseFloat(
-              subData?.monthlyRecurringRevenue || '0'
-            ),
+            monthlyRecurringRevenue: Number(subData?.monthlyRecurringRevenue || 0),
             currentMonthPayments: monthData?.monthlyPayments || 0,
-            currentMonthRevenue: parseFloat(
-              monthData?.monthlyRevenue || '0'
-            ),
+            currentMonthRevenue: Number(monthData?.monthlyRevenue || 0),
           },
         });
       } catch (error) {

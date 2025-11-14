@@ -35,6 +35,13 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'canceled',
 ]);
 
+export const webhookEventStatusEnum = pgEnum('webhook_event_status', [
+  'pending',
+  'processing',
+  'processed',
+  'failed',
+]);
+
 // Base Tables
 export const users = pgTable(
   'users',
@@ -137,10 +144,7 @@ export const passes = pgTable(
     description: varchar('description', { length: 1000 }),
     stripeProductId: varchar('stripe_product_id', { length: 255 }),
     stripePriceId: varchar('stripe_price_id', { length: 255 }),
-    monthlyAmount: decimal('monthly_amount', {
-      precision: 10,
-      scale: 2,
-    }).notNull(),
+    monthlyAmount: integer('monthly_amount').notNull(),
     active: boolean('active').default(true).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -165,8 +169,8 @@ export const passPriceHistory = pgTable(
     passId: uuid('pass_id')
       .notNull()
       .references(() => passes.id, { onDelete: 'cascade' }),
-    oldPrice: decimal('old_price', { precision: 10, scale: 2 }),
-    newPrice: decimal('new_price', { precision: 10, scale: 2 }).notNull(),
+    oldPrice: integer('old_price'),
+    newPrice: integer('new_price').notNull(),
     oldStripePriceId: varchar('old_stripe_price_id', { length: 255 }),
     newStripePriceId: varchar('new_stripe_price_id', { length: 255 }),
     changedBy: varchar('changed_by', { length: 255 }),
@@ -235,10 +239,7 @@ export const subscriptions = pgTable(
     currentPeriodEnd: timestamp('current_period_end'),
     cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false).notNull(),
     canceledAt: timestamp('canceled_at'),
-    monthlyAmount: decimal('monthly_amount', {
-      precision: 10,
-      scale: 2,
-    }).notNull(),
+    monthlyAmount: integer('monthly_amount').notNull(),
     // Renewal tracking fields
     renewalStatus: varchar('renewal_status', { length: 50 }).default('pending'),
     renewalAttemptedAt: timestamp('renewal_attempted_at'),
@@ -272,9 +273,9 @@ export const payments = pgTable(
     garageId: uuid('garage_id')
       .notNull()
       .references(() => garages.id, { onDelete: 'cascade' }),
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-    stripeFee: decimal('stripe_fee', { precision: 10, scale: 2 }).notNull(),
-    netAmount: decimal('net_amount', { precision: 10, scale: 2 }).notNull(),
+    amount: integer('amount').notNull(),
+    stripeFee: integer('stripe_fee').notNull(),
+    netAmount: integer('net_amount').notNull(),
     status: paymentStatusEnum('status').notNull(),
     currency: varchar('currency', { length: 3 }).default('usd').notNull(),
     paymentDate: timestamp('payment_date').notNull(),
@@ -297,9 +298,77 @@ export const payments = pgTable(
   })
 );
 
+// Payment Methods Table
+export const paymentMethods = pgTable(
+  'payment_methods',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    stripePaymentMethodId: varchar('stripe_payment_method_id', {
+      length: 255,
+    })
+      .notNull()
+      .unique(),
+    type: varchar('type', { length: 50 }).notNull(), // card, bank_account, etc.
+    isDefault: boolean('is_default').default(false).notNull(),
+    // Card-specific fields (populated for card payment methods)
+    cardBrand: varchar('card_brand', { length: 50 }), // visa, mastercard, etc.
+    cardLast4: varchar('card_last4', { length: 4 }),
+    cardExpMonth: integer('card_exp_month'),
+    cardExpYear: integer('card_exp_year'),
+    // Additional metadata from Stripe
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    userIdx: index('payment_methods_user_idx').on(table.userId),
+    stripePaymentMethodIdx: index('payment_methods_stripe_pm_idx').on(
+      table.stripePaymentMethodId
+    ),
+    isDefaultIdx: index('payment_methods_is_default_idx').on(table.isDefault),
+  })
+);
+
+// Webhook Events Table (for logging and idempotency)
+export const webhookEvents = pgTable(
+  'webhook_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    stripeEventId: varchar('stripe_event_id', { length: 255 })
+      .notNull()
+      .unique(),
+    type: varchar('type', { length: 255 }).notNull(),
+    status: webhookEventStatusEnum('status').notNull().default('pending'),
+    payload: jsonb('payload').notNull(),
+    processedAt: timestamp('processed_at'),
+    errorMessage: text('error_message'),
+    retryCount: integer('retry_count').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    stripeEventIdx: index('webhook_events_stripe_event_idx').on(
+      table.stripeEventId
+    ),
+    typeIdx: index('webhook_events_type_idx').on(table.type),
+    statusIdx: index('webhook_events_status_idx').on(table.status),
+    createdAtIdx: index('webhook_events_created_at_idx').on(table.createdAt),
+  })
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   subscriptions: many(subscriptions),
+  paymentMethods: many(paymentMethods),
 }));
 
 export const garagesRelations = relations(garages, ({ many }) => ({
@@ -348,6 +417,12 @@ export type NewSubscription = typeof subscriptions.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
 
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type NewPaymentMethod = typeof paymentMethods.$inferInsert;
+
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
+
 export const subscriptionsRelations = relations(
   subscriptions,
   ({ one, many }) => ({
@@ -375,5 +450,12 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   garage: one(garages, {
     fields: [payments.garageId],
     references: [garages.id],
+  }),
+}));
+
+export const paymentMethodsRelations = relations(paymentMethods, ({ one }) => ({
+  user: one(users, {
+    fields: [paymentMethods.userId],
+    references: [users.id],
   }),
 }));

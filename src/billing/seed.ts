@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { and, eq } from 'drizzle-orm';
 
 import {
@@ -15,6 +16,7 @@ import {
   subscribeUserToPass,
   type CreateGaragePassParams,
 } from './billing';
+import { addPaymentMethod } from './payment-method-management';
 import { createUser } from './user-management';
 
 /**
@@ -74,17 +76,17 @@ async function seed() {
       {
         name: 'Basic Monthly',
         description: 'Standard monthly parking',
-        price: 150,
+        priceCents: 15000,
       },
       {
         name: 'Premium Monthly',
         description: 'Reserved spot with EV charging',
-        price: 250,
+        priceCents: 25000,
       },
       {
         name: 'Weekend Only',
         description: 'Unlimited weekend parking',
-        price: 89,
+        priceCents: 8900,
       },
     ];
 
@@ -109,7 +111,7 @@ async function seed() {
             garageId: garage.id,
             name: passName,
             description: template.description,
-            monthlyPrice: template.price,
+            monthlyPriceCents: template.priceCents,
           };
 
           const stripeResult = await createGaragePass(passParams);
@@ -124,14 +126,14 @@ async function seed() {
                 description: template.description,
                 stripeProductId: stripeResult.data.productId,
                 stripePriceId: stripeResult.data.priceId,
-                monthlyAmount: template.price.toString(),
+                monthlyAmount: template.priceCents as any,
                 active: true,
               })
               .returning();
 
             if (pass) {
               console.log(
-                `  ✓ Created pass: ${passName} ($${template.price}/mo)`
+                `  ✓ Created pass: ${passName} (${template.priceCents} cents/mo)`
               );
               createdPasses.push(pass);
             }
@@ -297,162 +299,84 @@ async function seed() {
       }
     }
 
-    // Step 5: Create regular users
-    console.log('\n5️⃣ Creating regular users...');
-    const userData = [
-      {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '415-555-0101',
-      },
-      {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@example.com',
-        phone: '415-555-0102',
-      },
-      {
-        firstName: 'Bob',
-        lastName: 'Johnson',
-        email: 'bob.johnson@example.com',
-        phone: '415-555-0103',
-      },
-      {
-        firstName: 'Alice',
-        lastName: 'Williams',
-        email: 'alice.williams@example.com',
-        phone: '415-555-0104',
-      },
-      {
-        firstName: 'Charlie',
-        lastName: 'Brown',
-        email: 'charlie.brown@example.com',
-        phone: '415-555-0105',
-      },
-      {
-        firstName: 'Diana',
-        lastName: 'Davis',
-        email: 'diana.davis@example.com',
-        phone: '415-555-0106',
-      },
-      {
-        firstName: 'Edward',
-        lastName: 'Miller',
-        email: 'edward.miller@example.com',
-        phone: '415-555-0107',
-      },
-      {
-        firstName: 'Fiona',
-        lastName: 'Wilson',
-        email: 'fiona.wilson@example.com',
-        phone: '415-555-0108',
-      },
-      {
-        firstName: 'George',
-        lastName: 'Moore',
-        email: 'george.moore@example.com',
-        phone: '415-555-0109',
-      },
-      {
-        firstName: 'Hannah',
-        lastName: 'Taylor',
-        email: 'hannah.taylor@example.com',
-        phone: '415-555-0110',
-      },
-      {
-        firstName: 'Ian',
-        lastName: 'Anderson',
-        email: 'ian.anderson@example.com',
-        phone: '415-555-0111',
-      },
-      {
-        firstName: 'Julia',
-        lastName: 'Thomas',
-        email: 'julia.thomas@example.com',
-        phone: '415-555-0112',
-      },
-      {
-        firstName: 'Kevin',
-        lastName: 'Jackson',
-        email: 'kevin.jackson@example.com',
-        phone: '415-555-0113',
-      },
-      {
-        firstName: 'Laura',
-        lastName: 'White',
-        email: 'laura.white@example.com',
-        phone: '415-555-0114',
-      },
-      {
-        firstName: 'Michael',
-        lastName: 'Harris',
-        email: 'michael.harris@example.com',
-        phone: '415-555-0115',
-      },
-      {
-        firstName: 'Nina',
-        lastName: 'Martin',
-        email: 'nina.martin@example.com',
-        phone: '415-555-0116',
-      },
-      {
-        firstName: 'Oscar',
-        lastName: 'Thompson',
-        email: 'oscar.thompson@example.com',
-        phone: '415-555-0117',
-      },
-      {
-        firstName: 'Paula',
-        lastName: 'Garcia',
-        email: 'paula.garcia@example.com',
-        phone: '415-555-0118',
-      },
-      {
-        firstName: 'Quinn',
-        lastName: 'Martinez',
-        email: 'quinn.martinez@example.com',
-        phone: '415-555-0119',
-      },
-      {
-        firstName: 'Rachel',
-        lastName: 'Robinson',
-        email: 'rachel.robinson@example.com',
-        phone: '415-555-0120',
-      },
-    ];
+    // Step 5: Create regular users with Faker
+    console.log('\n5️⃣ Creating regular users with Faker...');
 
+    // Seed Faker for consistent results
+    faker.seed(12345);
+
+    const numberOfUsers = 20;
     const createdUsers = [];
-    for (const data of userData) {
+
+    for (let i = 0; i < numberOfUsers; i++) {
+      const firstName = faker.person.firstName();
+      const lastName = faker.person.lastName();
+      const email = faker.internet.email({ firstName, lastName }).toLowerCase();
+      const phone = faker.phone.number({ style: 'national' });
+
       const [existing] = await db
         .select()
         .from(users)
-        .where(eq(users.email, data.email))
+        .where(eq(users.email, email))
         .limit(1);
 
       if (existing) {
-        console.log(`  ✓ User already exists: ${data.email}`);
+        console.log(`  ✓ User already exists: ${email}`);
         createdUsers.push(existing);
-      } else {
-        // Use createUser to automatically create Stripe customer
-        const result = await createUser({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-        });
+        continue;
+      }
 
-        if (result.success) {
-          console.log(
-            `  ✓ Created user with Stripe customer: ${data.firstName} ${data.lastName} (${result.data.stripeCustomerId})`
+      // Use createUser to automatically create Stripe customer
+      const result = await createUser({
+        firstName,
+        lastName,
+        email,
+        phone,
+      });
+
+      if (result.success) {
+        console.log(`  ✓ Created user: ${firstName} ${lastName} (${email})`);
+        createdUsers.push(result.data);
+
+        // Add a payment method for this user using Stripe test tokens
+        // Stripe provides test payment method tokens for testing
+        const testPaymentMethods = [
+          'pm_card_visa',
+          'pm_card_mastercard',
+          'pm_card_amex',
+          'pm_card_discover',
+        ];
+
+        // Use different card types for variety
+        const testPmId = testPaymentMethods[i % testPaymentMethods.length];
+
+        try {
+          const pmResult = await addPaymentMethod(
+            result.data.id,
+            testPmId!,
+            true // Set as default
           );
-          createdUsers.push(result.data);
-        } else {
+
+          if (pmResult.success) {
+            console.log(
+              `    ✓ Added payment method: ${pmResult.data.cardBrand} ****${pmResult.data.cardLast4}`
+            );
+          } else {
+            console.error(
+              `    ✗ Failed to add payment method: ${pmResult.error.message}`
+            );
+          }
+        } catch (error) {
           console.error(
-            `  ✗ Failed to create user ${data.email}:`,
-            result.error.message
+            `    ✗ Error adding payment method:`,
+            error instanceof Error ? error.message : 'Unknown error'
           );
         }
+      } else {
+        console.error(
+          `  ✗ Failed to create user ${email}:`,
+          result.error.message
+        );
       }
     }
 
@@ -508,12 +432,17 @@ async function seed() {
 
         // morning ramp 7-10, peak 10-16, evening 16-19, low otherwise
         let base = offBase;
-        if (h >= 7 && h < 10) base = offBase + (peakBase - offBase) * ((h - 7 + 1) / 4);
+        if (h >= 7 && h < 10)
+          base = offBase + (peakBase - offBase) * ((h - 7 + 1) / 4);
         else if (h >= 10 && h < 16) base = peakBase;
-        else if (h >= 16 && h < 19) base = offBase + (peakBase - offBase) * ((19 - h) / 3);
+        else if (h >= 16 && h < 19)
+          base = offBase + (peakBase - offBase) * ((19 - h) / 3);
 
         const variance = (Math.random() - 0.5) * 0.1; // +/-5%
-        const value = Math.max(0, Math.min(cap, Math.floor(cap * (base + variance))));
+        const value = Math.max(
+          0,
+          Math.min(cap, Math.floor(cap * (base + variance)))
+        );
         return value;
       });
     };
@@ -529,12 +458,17 @@ async function seed() {
         .select()
         .from(garageDailyOccupancy)
         .where(
-          and(eq(garageDailyOccupancy.garageId as any, garage.id), eq(garageDailyOccupancy.day as any, start))
+          and(
+            eq(garageDailyOccupancy.garageId as any, garage.id),
+            eq(garageDailyOccupancy.day as any, start)
+          )
         )
         .limit(1);
 
       if (existingFirstDay) {
-        console.log(`  ↷ Skipping occupancy/logs for ${garage.name} (already seeded)`);
+        console.log(
+          `  ↷ Skipping occupancy/logs for ${garage.name} (already seeded)`
+        );
         continue;
       }
 
@@ -572,7 +506,9 @@ async function seed() {
           let exitedAt: Date | null = null;
           if (willExit) {
             const durationHours = 1 + Math.floor(Math.random() * 6);
-            exitedAt = new Date(enteredAt.getTime() + durationHours * 60 * 60 * 1000);
+            exitedAt = new Date(
+              enteredAt.getTime() + durationHours * 60 * 60 * 1000
+            );
           }
 
           const userId = pickUserId();
@@ -594,6 +530,9 @@ async function seed() {
     console.log(`  - Super Admin: 1 (admin@vend.com)`);
     console.log(`  - Garage Admins: ${createdGarageAdmins.length}`);
     console.log(`  - Regular Users: ${createdUsers.length}`);
+    console.log(
+      `  - Payment Methods: ${createdUsers.length} (with Stripe test cards)`
+    );
     console.log(`  - Subscriptions: ${subscriptionCount}`);
     console.log(`  - Parked Logs: ${parkedCount}`);
     console.log(`  - Daily Occupancy Records: ${occupancyRecords}`);

@@ -11,7 +11,7 @@ export interface CreateGaragePassParams {
   garageId: string;
   name: string;
   description: string;
-  monthlyPrice: number; // in dollars
+  monthlyPriceCents: number; // integer cents
 }
 
 export interface CreateGaragePassResult {
@@ -27,10 +27,10 @@ export async function createGaragePass(
   params: CreateGaragePassParams
 ): Promise<Result<CreateGaragePassResult>> {
   try {
-    const { passId, garageId, name, description, monthlyPrice } = params;
+    const { passId, garageId, name, description, monthlyPriceCents } = params;
 
-    // Validate monthly price
-    if (monthlyPrice <= 0) {
+    // Validate monthly price (in cents)
+    if (monthlyPriceCents <= 0) {
       return err(new Error('Monthly price must be greater than 0'));
     }
 
@@ -44,13 +44,9 @@ export async function createGaragePass(
       },
     });
 
-    // Create Stripe Price with monthly recurring interval
-    // Convert dollars to cents for Stripe
-    const priceInCents = Math.round(monthlyPrice * 100);
-
     const price = await stripe.prices.create({
       product: product.id,
-      unit_amount: priceInCents,
+      unit_amount: monthlyPriceCents,
       currency: 'usd',
       recurring: {
         interval: 'month',
@@ -205,7 +201,7 @@ export async function subscribeUserToPass(
 export interface GarageRevenueReport {
   garage: string;
   activeSubscriptions: number;
-  monthlyRevenue: number;
+  monthlyRevenueCents: number;
 }
 
 /**
@@ -229,22 +225,22 @@ export async function generateRevenueReport(): Promise<
       .where(eq(subscriptions.status, 'active'));
 
     // Aggregate by garage
-    const garageMap = new Map<string, { count: number; revenue: number }>();
+    const garageMap = new Map<string, { count: number; revenueCents: number }>();
 
     for (const row of result) {
       const garageName = row.garageName;
-      const amount = parseFloat(row.monthlyAmount);
+      const amountCents = row.monthlyAmount as unknown as number;
 
       const existing = garageMap.get(garageName);
       if (existing) {
         garageMap.set(garageName, {
           count: existing.count + 1,
-          revenue: existing.revenue + amount,
+          revenueCents: existing.revenueCents + amountCents,
         });
       } else {
         garageMap.set(garageName, {
           count: 1,
-          revenue: amount,
+          revenueCents: amountCents,
         });
       }
     }
@@ -255,10 +251,10 @@ export async function generateRevenueReport(): Promise<
     ).map(([garage, data]) => ({
       garage,
       activeSubscriptions: data.count,
-      monthlyRevenue: Math.round(data.revenue * 100) / 100, // Round to 2 decimals
+      monthlyRevenueCents: data.revenueCents,
     }));
 
-    report.sort((a, b) => b.monthlyRevenue - a.monthlyRevenue);
+    report.sort((a, b) => b.monthlyRevenueCents - a.monthlyRevenueCents);
 
     return ok(report);
   } catch (error) {

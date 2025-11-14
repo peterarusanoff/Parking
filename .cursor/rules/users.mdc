@@ -1,0 +1,30 @@
+## Route: users
+
+- Base path: `/api/users`
+- Purpose: Manage user entities with Stripe customer sync and payment methods.
+- Key behaviors:
+  - POST uses `createUser` (creates Stripe customer, then DB user).
+  - PUT `/:id` uses `updateUser` (syncs name/email/phone to Stripe).
+  - GET `/:id` returns user and all subscriptions with pass and garage details.
+  - Payment method management endpoints attach/detach payment methods from Stripe customer.
+- Endpoints:
+  - `GET /api/users` – list users (paginated/filterable).
+  - `POST /api/users` – create user (Stripe customer created).
+  - `GET /api/users/:id` – user with subscriptions and pass/garage data.
+  - `PUT /api/users/:id` – update profile + Stripe sync.
+  - `DELETE /api/users/:id` – delete user (consider Stripe impacts).
+  - `GET /api/users/:id/payment-methods` – list all payment methods for user.
+  - `POST /api/users/:id/payment-methods` – attach payment method (created client-side) to Stripe customer.
+  - `PATCH /api/users/:id/payment-methods/:paymentMethodId/default` – set default payment method.
+  - `DELETE /api/users/:id/payment-methods/:paymentMethodId` – detach and remove payment method.
+- Payment Method Flow:
+  - Client creates payment method using Stripe Elements/SDK (returns `pm_xxx` token).
+  - Client sends token to POST endpoint which attaches to Stripe customer and saves to DB.
+  - Payment methods stored in `payment_methods` table with card details (brand, last4, expiration).
+  - Uses `addPaymentMethod`, `removePaymentMethod`, `setDefaultPaymentMethod` from `src/billing/payment-method-management.ts`.
+- Auth:
+  - Public/mocked in development; production should use auth.
+- Type safety:
+  - Use Elysia `t` for request/response contracts.
+  - Payment method ID validated as UUID, Stripe PM ID as string with minLength.
+  - Ensure DB date/decimal conversions are handled.

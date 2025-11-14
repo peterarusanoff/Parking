@@ -1,0 +1,19 @@
+## Route: subscriptions
+
+- Base path: `/api/subscriptions`
+- Purpose: Subscription lifecycle operations with Stripe alignment.
+- Key behaviors:
+  - Manual renewal for a subscription.
+  - Batch processing renewals for those expiring within a time window.
+  - Cancel at period end; reactivate; immediate cancellation (admin).
+- Endpoints (typical):
+  - `GET /api/subscriptions` – list subscriptions.
+  - `POST /api/subscriptions` – create subscription (helper flow; depends on app design).
+  - `POST /api/subscriptions/:id/renew` – renew once.
+  - `POST /api/subscriptions/process-renewals` – batch renew expiring.
+  - `POST /api/subscriptions/:id/cancel` – cancel at period end.
+  - `POST /api/subscriptions/:id/reactivate` – undo cancel.
+  - `POST /api/subscriptions/:id/cancel-immediately` – immediate cancel (admin).
+- Type safety:
+  - Ensure date conversions for `currentPeriodStart/End`, `canceledAt`.
+  - Map Stripe status changes back to DB consistently.
