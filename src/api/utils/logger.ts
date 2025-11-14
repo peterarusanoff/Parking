@@ -1,6 +1,6 @@
 import { isDevelopment } from '@/env';
 
-const logWebhooks = isDevelopment && true ? true : false;
+const logWebhooks = isDevelopment && false ? true : false;
 
 export const testLogger = {
   webhooks: {
