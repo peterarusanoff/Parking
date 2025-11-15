@@ -1,0 +1,20 @@
+## Route: garages
+
+- Base path: `/api/garages`
+- Purpose: Manage garages, capacity, and analytics entrypoints.
+- Key behaviors:
+  - CRUD for garages; `capacity` included in responses.
+  - Standardize path param to `:id` to avoid route conflicts.
+- Endpoints (typical):
+  - `GET /api/garages` – list garages.
+  - `POST /api/garages` – create garage.
+  - `GET /api/garages/:id` – get garage (with capacity).
+  - `PUT /api/garages/:id` – update garage details/capacity.
+  - `DELETE /api/garages/:id` – delete garage.
+- Auth:
+  - Admin-only for mutations in production.
+- Notes:
+  - Analytics and reporting endpoints may live here or in `admin`.
+  - Ensure integrity with occupancy tracking (capacity awareness).
+
+

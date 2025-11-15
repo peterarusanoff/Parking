@@ -1,0 +1,12 @@
+## Route: health
+
+- Base path: `/api/health`
+- Purpose: Basic service health and readiness checks.
+- Typical endpoints:
+  - `GET /api/health` – returns service status/metadata.
+- Auth: Public.
+- Notes:
+  - Keep responses lightweight and cacheable.
+  - Useful for uptime checks and deployment verification.
+
+

@@ -1,0 +1,29 @@
+## Route: billing
+
+- Base path: `/api/billing`
+- Purpose: Operational billing endpoints delegating to `src/billing` services.
+- Typical responsibilities:
+  - User management with Stripe (via `user-management.ts` exports).
+  - Pass price updates and history retrieval (via `pass-price-management.ts`).
+  - Renewal flows (via `subscription-renewal.ts`).
+  - Cancellation flows (via `subscription-cancellation.ts`).
+- Guidance:
+  - Keep transport thin; call the dedicated billing service functions.
+  - Validate inputs with `t` schemas; return typed success/error responses.
+  - Ensure Stripe and DB are kept in sync (idempotency where possible).
+
+## Route: billing
+
+- Base path: `/api/billing`
+- Purpose: Operational billing endpoints delegating to `src/billing` services.
+- Typical responsibilities:
+  - User management with Stripe (via `user-management.ts` exports).
+  - Pass price updates and history retrieval (via `pass-price-management.ts`).
+  - Renewal flows (via `subscription-renewal.ts`).
+  - Cancellation flows (via `subscription-cancellation.ts`).
+- Guidance:
+  - Keep transport thin; call the dedicated billing service functions.
+  - Validate inputs with `t` schemas; return typed success/error responses.
+  - Ensure Stripe and DB are kept in sync (idempotency where possible).
+
+

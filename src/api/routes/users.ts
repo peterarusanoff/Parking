@@ -1,5 +1,11 @@
 import { Elysia, t } from 'elysia';
 
+import {
+  addPaymentMethod,
+  getUserPaymentMethods,
+  removePaymentMethod,
+  setDefaultPaymentMethod,
+} from '@/billing/payment-method-management';
 import { createUser, updateUser } from '@/billing/user-management';
 import { db, garages, passes, subscriptions, users } from '@/database/index';
 import { errorResponse, successResponse } from '@/shared/index';
@@ -150,6 +156,132 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
         summary: 'Update user and sync with Stripe',
         description:
           'Updates an existing user and syncs changes with Stripe customer',
+      },
+    }
+  )
+  // Get user's payment methods
+  .get(
+    '/:id/payment-methods',
+    async ({ params: { id }, set }) => {
+      const result = await getUserPaymentMethods(id);
+
+      if (!result.success) {
+        set.status = 404;
+        return errorResponse(result.error.message);
+      }
+
+      return successResponse(result.data);
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid' }),
+      }),
+      detail: {
+        tags: ['users'],
+        summary: 'Get user payment methods',
+        description: 'Returns all payment methods for a user',
+      },
+    }
+  )
+  // Add payment method to user
+  .post(
+    '/:id/payment-methods',
+    async ({ params: { id }, body, set }) => {
+      const result = await addPaymentMethod(
+        id,
+        body.stripePaymentMethodId,
+        body.setAsDefault
+      );
+
+      if (!result.success) {
+        set.status = 400;
+        return errorResponse(result.error.message);
+      }
+
+      set.status = 201;
+      return successResponse(
+        result.data,
+        'Payment method added successfully'
+      );
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid' }),
+      }),
+      body: t.Object({
+        stripePaymentMethodId: t.String({
+          minLength: 1,
+          description:
+            'Stripe payment method ID (created client-side with Stripe Elements)',
+        }),
+        setAsDefault: t.Optional(
+          t.Boolean({
+            description: 'Set this as the default payment method',
+            default: false,
+          })
+        ),
+      }),
+      detail: {
+        tags: ['users'],
+        summary: 'Add payment method',
+        description:
+          'Attaches a payment method to a user\'s Stripe customer. The payment method must be created client-side first using Stripe Elements.',
+      },
+    }
+  )
+  // Set default payment method
+  .patch(
+    '/:id/payment-methods/:paymentMethodId/default',
+    async ({ params: { id, paymentMethodId }, set }) => {
+      const result = await setDefaultPaymentMethod(id, paymentMethodId);
+
+      if (!result.success) {
+        set.status = result.error.message === 'Payment method not found' ? 404 : 400;
+        return errorResponse(result.error.message);
+      }
+
+      return successResponse(
+        result.data,
+        'Default payment method updated successfully'
+      );
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid' }),
+        paymentMethodId: t.String({ format: 'uuid' }),
+      }),
+      detail: {
+        tags: ['users'],
+        summary: 'Set default payment method',
+        description: 'Sets a payment method as the default for a user',
+      },
+    }
+  )
+  // Remove payment method
+  .delete(
+    '/:id/payment-methods/:paymentMethodId',
+    async ({ params: { id, paymentMethodId }, set }) => {
+      const result = await removePaymentMethod(id, paymentMethodId);
+
+      if (!result.success) {
+        set.status = result.error.message === 'Payment method not found' ? 404 : 400;
+        return errorResponse(result.error.message);
+      }
+
+      return successResponse(
+        result.data,
+        'Payment method removed successfully'
+      );
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: 'uuid' }),
+        paymentMethodId: t.String({ format: 'uuid' }),
+      }),
+      detail: {
+        tags: ['users'],
+        summary: 'Remove payment method',
+        description: 'Detaches and removes a payment method from a user',
       },
     }
   );

@@ -61,13 +61,7 @@ export const passRoutes = new Elysia({ prefix: '/api/passes' })
     '/',
     async ({ body, set }) => {
       try {
-        const [newPass] = await db
-          .insert(passes)
-          .values({
-            ...body,
-            monthlyAmount: body.monthlyAmount.toString(),
-          })
-          .returning();
+        const [newPass] = await db.insert(passes).values(body as any).returning();
         set.status = 201;
         return successResponse(newPass, 'Pass created successfully');
       } catch (error) {
@@ -84,7 +78,7 @@ export const passRoutes = new Elysia({ prefix: '/api/passes' })
         description: t.Optional(t.String({ maxLength: 1000 })),
         stripeProductId: t.Optional(t.String({ maxLength: 255 })),
         stripePriceId: t.Optional(t.String({ maxLength: 255 })),
-        monthlyAmount: t.Number({ minimum: 0 }),
+        monthlyAmount: t.Integer({ minimum: 0 }),
         active: t.Optional(t.Boolean()),
       }),
       detail: {
@@ -104,7 +98,7 @@ export const passRoutes = new Elysia({ prefix: '/api/passes' })
           // Use price management service for price changes
           const result = await updatePassPrice({
             passId: id,
-            newPrice: body.monthlyAmount,
+            newPriceCents: body.monthlyAmount,
             ...(body.changedBy && { changedBy: body.changedBy }),
             ...(body.changeReason && { changeReason: body.changeReason }),
           });
@@ -173,7 +167,7 @@ export const passRoutes = new Elysia({ prefix: '/api/passes' })
         description: t.Optional(t.String({ maxLength: 1000 })),
         stripeProductId: t.Optional(t.String({ maxLength: 255 })),
         stripePriceId: t.Optional(t.String({ maxLength: 255 })),
-        monthlyAmount: t.Optional(t.Number({ minimum: 0 })),
+        monthlyAmount: t.Optional(t.Integer({ minimum: 0 })),
         active: t.Optional(t.Boolean()),
         changedBy: t.Optional(t.String({ maxLength: 255 })),
         changeReason: t.Optional(t.String({ maxLength: 1000 })),

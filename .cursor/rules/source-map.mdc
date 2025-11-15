@@ -1,0 +1,192 @@
+## Repository Source Map and Architecture Guide
+
+This document orients AI agents and engineers to navigate and modify the Vend Parking project confidently with end-to-end type safety.
+
+### Project Overview
+- Purpose: Type-safe billing and reporting API for parking subscriptions, garages, passes, and occupancy tracking.
+- Stack:
+  - Runtime: Bun
+  - Web framework: Elysia (with OpenAPI)
+  - ORM: Drizzle ORM (PostgreSQL)
+  - DB Client: postgres.js
+  - Validation: Zod (env) + Elysia’s `t` (TypeBox) for HTTP schemas
+  - Billing: Stripe SDK
+  - Frontend: Vite/React inside `web/` (development helper)
+
+### High-Level Architecture
+- API layer (Elysia) provides modular route groups per domain: `users`, `garages`, `passes`, `subscriptions`, `billing`, `admin`, `health`, `parked`, `webhooks`.
+- Business logic in `src/billing/*` for user/Stripe sync, payment methods, pass price changes, subscription lifecycle, webhook processing, and (optionally) renewal workflows.
+- Persistence in `src/database`: schema, client, and typed exports used across the app.
+- Role-based access (RBAC) with `user`, `garage_admin`, `super_admin`. Admin endpoints protected via lightweight header-based mock auth middleware.
+- Parking telemetry: `parked` logs + `garageDailyOccupancy` hourly arrays to summarize per-garage occupancy by day.
+- Webhook integration: Stripe events validated, logged, and processed to keep database in sync with Stripe.
+
+### Directory Structure (key paths)
+- `src/api/index.ts`: Elysia app bootstrap
+  - Registers OpenAPI (Swagger), CORS, global error handling
+  - Registers routes from `src/api/routes/index.ts`
+  - Tags endpoints for documentation
+- `src/api/routes/`:
+  - `health.ts`: service health
+  - `users.ts`: CRUD users; GET by id returns subscriptions (+ pass/garage details); payment method management (add, remove, set default)
+  - `garages.ts`: CRUD garages, analytics/reporting helpers (capacity included); ensure routes standardize `:id`
+  - `passes.ts`: CRUD passes; price updates via `updatePassPrice` (also migrates subscriptions)
+  - `subscriptions.ts`: lifecycle endpoints (renew, cancel, reactivate, cancel-immediately)
+  - `billing.ts`: Stripe-related operational endpoints (exports from `src/billing`)
+  - `admin.ts`: RBAC dashboards, assignments, and reporting for managed garages
+  - `parked.ts`: CRUD for parking events; adjusts hourly occupancy on enter/exit
+  - `webhooks.ts`: Stripe webhook endpoint with signature validation and event processing
+  - `index.ts`: exports all routes for `src/api/index.ts`
+- `src/api/middleware/auth.ts`: mock auth from `x-user-id`; role helpers; admin-guard helpers
+- `src/billing/`:
+  - `index.ts`: re-exports billing services
+  - `user-management.ts`: create/update users with Stripe customer sync
+  - `payment-method-management.ts`: add/remove/set default payment methods for users (Stripe sync)
+  - `webhook-handler.ts`: validate webhook signatures, log events, process Stripe events (customer, payment_method, subscription, payment_intent, invoice)
+  - `subscription-renewal.ts`: batched/manual renewals (DB + Stripe)
+  - `subscription-cancellation.ts`: cancel at period end, reactivate, immediate cancel
+  - `pass-price-management.ts`: update pass price, create Stripe price, archive old price, write `passPriceHistory`, migrate active subscriptions
+  - `seed.ts`: real seed (Stripe) with Faker.js; creates users with payment methods using Stripe test tokens; generates 3 weeks of occupancy + parked logs
+  - `seed-mock.ts`: mock seed without Stripe; uses Faker.js for users; generates mock payment methods; mirrors data model with 3-week occupancy + parked logs
+- `src/database/`:
+  - `schema.ts`: Drizzle schema (users/roles, garages/capacity, passes, subscriptions, payments, paymentMethods, webhookEvents, garageAdmins, passPriceHistory, parked, garageDailyOccupancy)
+  - `client.ts`: postgres.js client; sanitizes `DATABASE_URL` from `?schema=` param
+  - `index.ts`: typed exports for tables and types
+- `src/env.ts`: Zod-validated environment variables with typed `env`
+- `drizzle.config.ts`: Drizzle config (generation/push)
+- `web/`: local dashboard and testing UI
+  - `src/api/client.ts`: API client using `VITE_API_URL` or defaults
+
+### Data Model Summary (principal tables)
+- `users`:
+  - Profile: first/last name, email, phone, `role` (enum: user|garage_admin|super_admin), `stripeCustomerId`
+  - Relations to `subscriptions`, `payments`, `paymentMethods`, `garageAdmins`, `parked`
+- `payment_methods`:
+  - `userId`, `stripePaymentMethodId`, `type`, `isDefault`
+  - Card details: `cardBrand`, `cardLast4`, `cardExpMonth`, `cardExpYear`
+  - Metadata jsonb for additional Stripe data
+- `webhook_events`:
+  - `stripeEventId` (unique), `type`, `status` (enum: pending|processing|processed|failed)
+  - Full event `payload` jsonb, `processedAt`, `errorMessage`, `retryCount`
+  - Used for idempotency and debugging webhook processing
+- `garages`:
+  - Name, address, `capacity`
+  - Related to passes, subscriptions, payments, parked, occupancy
+- `passes`:
+  - `stripeProductId`, `stripePriceId`, `monthlyAmount` (stored as string/decimal), `active`
+  - Related to subscriptions; tracked via `passPriceHistory`
+- `subscriptions`:
+  - `userId`, `garageId`, `passId`, price ids, `status`, current period dates, `cancelAtPeriodEnd`, `monthlyAmount`
+  - Renewal helpers and cancellation workflows in billing services
+- `passPriceHistory`:
+  - Old/new price, `changedBy`, `changeReason`, `effectiveDate`, stripe price ids
+  - Used to audit pricing and retrieve historical price at dates
+- `garageAdmins`:
+  - Maps `userId` to `garageId` with permissions jsonb
+- `parked`:
+  - `garageId`, `userId?`, `passId?`, `vehiclePlate`, `enteredAt`, `exitedAt`
+  - Route logic auto-updates occupancy on entry/exit
+- `garageDailyOccupancy`:
+  - `garageId`, `day` (midnight), `hourlyOccupancy` (number[24])
+
+### HTTP Routes and Responsibilities
+(See per-route rule files under `.cursor/rules/` for detailed guidance.)
+- `health`: ping, readiness, meta
+- `users`:
+  - POST uses `createUser` to create Stripe customer + DB user
+  - GET `/:id` returns subscriptions with pass and garage metadata
+  - PUT uses `updateUser` to sync changes to Stripe
+  - Payment method endpoints: GET/POST/PATCH/DELETE for managing payment methods (attach/detach from Stripe)
+- `webhooks`:
+  - POST `/stripe` validates webhook signature, logs event, processes and updates database
+  - Handles customer, payment_method, subscription, payment_intent, and invoice events
+  - Idempotent processing with event logging to `webhook_events` table
+- `garages`:
+  - CRUD; includes capacity; reporting stubs
+- `passes`:
+  - PUT `/:id` with price change routes through `updatePassPrice` (history + migrate subscriptions)
+  - GET `/:id/price-history` returns full change log
+- `subscriptions`:
+  - Manual renew, batch renew expiring; cancel at period end; reactivate; immediate cancel (admin)
+- `billing`:
+  - Aggregation of billing services from `src/billing`
+- `admin`:
+  - My garages, dashboards, P&L, admin assignment and permission updates
+- `parked`:
+  - Entrance POST creates parked entry and increments occupancy hour
+  - PUT supports exit; decrements occupancy hour on first exit set
+
+### End-to-End Type Safety
+- Request/response validation with Elysia `t` schemas
++- DB types inferred from Drizzle schema; avoid `any` except where dynamic fields are unavoidable
++- Conversions enforced where DB stores decimals/dates as strings/Date instances
++- Maintain single source of truth for types; don’t re-declare duplicate domain types
+
+### Auth and RBAC
+- Mock authentication via `x-user-id` header (retrieves role and user)
+- `garage_admin` access constrained to managed garages (helpers: `isGarageAdmin`, `getManagedGarages`)
+- `super_admin` can assign admins and update permissions
+
+### Seeds and Data Generation
+- Real: `bun run seed` (Stripe-enabled). Uses Faker.js. Generates:
+  - Garages (with capacity), passes (Stripe connected), admins
+  - 20 users with Faker-generated names/emails and Stripe test payment methods (pm_card_visa, pm_card_mastercard, etc.)
+  - Subscriptions distributed across passes
+  - 3 weeks of `garageDailyOccupancy` and `parked` logs, associating each parked log with a real user
+- Mock: `bun run seed:mock` (no Stripe). Uses Faker.js. Same structure and telemetry with mock payment methods.
+- Idempotency: seeds detect existing records; 3-week window has a first-day guard to skip re-seeding window if already present.
+- Faker seeded (12345) for consistent results; configurable `numberOfUsers` constant.
+
+### Local Development
+- Requirements: PostgreSQL, Bun, Node tooling
+- Environment:
+  - Required: `STRIPE_SECRET_KEY`
+  - Recommended: `STRIPE_WEBHOOK_SECRET` (required for webhook signature validation)
+  - Optional: `STRIPE_PUBLISHABLE_KEY`, `CORS_ORIGIN`
+  - DB: `DATABASE_URL` (sanitized by client)
+- Scripts:
+  - Start API (dev): `bun run dev`
+  - Start Web (dev): `bun run dev:web`
+  - Typecheck: `bun run typecheck`
+  - Lint: `bun run lint`
+  - DB push: `bun run db:push`
+  - Seed real: `bun run seed` / Mock: `bun run seed:mock`
+  - Tests: `bun run test` / E2E: `bun run test:e2e`
+
+### Troubleshooting
+- “relation ... does not exist”: run `bun run db:push` to sync schema
+- “unrecognized configuration parameter ‘schema’”: `src/database/client.ts` strips invalid `?schema=` from `DATABASE_URL`
+- Decimal/date mismatches: convert incoming numbers/strings to DB-expected types before insert/update
+
+### Conventions and Best Practices
+- Favor early returns; avoid deep nesting
+- Only meaningful try/catch; don’t swallow errors
+- Keep comments concise; explain intent/edge cases, not the obvious
+- Strict TypeScript and schema validation at the edges
+- Prefer modular route files; avoid large monoliths
+
+### Documentation Maintenance
+- Do not generate chat “what changed” reports. Instead:
+  - Update this file’s “Recent Changes” section and the corresponding route rule file(s) whenever you change behavior.
+  - Keep endpoint schemas and examples aligned with implementation.
+
+### Recent Changes (update as you work)
+- Added `parked` occupancy adjustments on enter/exit.
+- Seeds now generate 3 weeks of occupancy and parked logs; parked logs always link to a real user.
+- **Payment Methods**: Added full payment method management (add, remove, set default) for users.
+  - New table: `payment_methods` with Stripe sync
+  - New routes: GET/POST/PATCH/DELETE under `/api/users/:id/payment-methods`
+  - Business logic: `src/billing/payment-method-management.ts`
+- **Stripe Webhooks**: Complete webhook integration with signature validation and event processing.
+  - New table: `webhook_events` for logging and idempotency
+  - New route: POST `/api/webhooks/stripe` with signature validation
+  - Webhook handler: `src/billing/webhook-handler.ts` with event processors for customer, payment_method, subscription, payment_intent, and invoice events
+  - All events logged and processed to keep database in sync with Stripe
+- **Faker Integration**: Seeds now use Faker.js for realistic test data.
+  - Replaced hardcoded user arrays with dynamic Faker-generated names, emails, phones
+  - Consistent results with faker.seed(12345)
+  - Real seed adds Stripe test payment methods (pm_card_visa, etc.)
+  - Mock seed creates mock payment method records
+  - Configurable user count via `numberOfUsers` constant
+
+

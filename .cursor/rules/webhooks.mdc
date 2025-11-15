@@ -1,0 +1,57 @@
+## Route: webhooks
+
+- Base path: `/api/webhooks`
+- Purpose: Handle Stripe webhook events with signature validation and automated database updates.
+- Key behaviors:
+  - POST `/stripe` validates webhook signature using `STRIPE_WEBHOOK_SECRET`.
+  - All events logged to `webhook_events` table for idempotency and debugging.
+  - Events automatically update corresponding database records based on type.
+  - Full type safety using Stripe SDK types and Elysia validation.
+- Endpoints:
+  - `POST /api/webhooks/stripe` – main webhook endpoint (signature validation required).
+  - `GET /api/webhooks/stripe/test` – test endpoint to verify webhook is reachable (development).
+- Webhook Flow:
+  1. Stripe sends event with signature in `stripe-signature` header.
+  2. `verifyWebhookSignature` validates signature using webhook secret.
+  3. Event logged to `webhook_events` table with status 'pending'.
+  4. `processWebhookEvent` routes to appropriate handler based on event type.
+  5. Handler updates database (users, payment_methods, subscriptions, payments, etc.).
+  6. Event marked as 'processed' or 'failed' with error message if applicable.
+- Supported Event Types:
+  - **Customer**: `customer.created`, `customer.updated`, `customer.deleted` – sync to users table.
+  - **Payment Method**: `payment_method.attached`, `payment_method.detached`, `payment_method.updated` – sync to payment_methods table.
+  - **Subscription**: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` – sync to subscriptions table.
+  - **Payment Intent**: `payment_intent.succeeded`, `payment_intent.payment_failed` – update payments table.
+  - **Invoice**: `invoice.paid`, `invoice.payment_failed` – create payment records and update subscription status.
+- Idempotency:
+  - Events checked against `webhook_events.stripe_event_id` (unique constraint).
+  - Duplicate events are skipped automatically.
+  - Event status tracked: pending → processing → processed/failed.
+- Error Handling:
+  - Invalid signatures return 400 with error message.
+  - Processing errors logged to `webhook_events.error_message`.
+  - Failed events can be inspected and manually retried.
+- Security:
+  - Signature validation required (uses `stripe.webhooks.constructEvent`).
+  - Webhook secret must be set in environment (`STRIPE_WEBHOOK_SECRET`).
+  - Raw body required for signature validation (uses `type: 'text/plain'`).
+- Type Safety:
+  - Body validated as string for raw webhook payload.
+  - Stripe event types from `Stripe.Event` (SDK types).
+  - Event handlers strongly typed for each event data object.
+  - Database updates use proper Drizzle types.
+- Handler Functions (in `src/billing/webhook-handler.ts`):
+  - `verifyWebhookSignature` – validates signature and returns parsed event.
+  - `processWebhookEvent` – main router that logs and dispatches to handlers.
+  - Event-specific handlers: `handleCustomerUpdated`, `handlePaymentMethodAttached`, `handleSubscriptionUpdated`, etc.
+- Setup:
+  - Configure `STRIPE_WEBHOOK_SECRET` in environment.
+  - Create webhook endpoint in Stripe Dashboard pointing to `/api/webhooks/stripe`.
+  - For local testing: use Stripe CLI `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
+- Auth:
+  - No traditional auth; validated by Stripe signature.
+  - Endpoint must be publicly accessible for Stripe to reach it.
+- Monitoring:
+  - Query `webhook_events` table to see all received events.
+  - Filter by status ('failed') to find processing errors.
+  - Check `error_message` and `retry_count` for debugging.

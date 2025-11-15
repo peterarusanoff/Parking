@@ -1,3 +1,4 @@
+import { faker } from '@faker-js/faker';
 import { and, eq } from 'drizzle-orm';
 
 import {
@@ -5,6 +6,7 @@ import {
   garageAdmins,
   garages,
   passes,
+  paymentMethods,
   payments,
   subscriptions,
   users,
@@ -246,153 +248,72 @@ async function seedMock() {
       }
     }
 
-    // Step 5: Create regular users
-    console.log('\n5️⃣ Creating regular users...');
-    const userData = [
-      {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '415-555-0101',
-      },
-      {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@example.com',
-        phone: '415-555-0102',
-      },
-      {
-        firstName: 'Bob',
-        lastName: 'Johnson',
-        email: 'bob.johnson@example.com',
-        phone: '415-555-0103',
-      },
-      {
-        firstName: 'Alice',
-        lastName: 'Williams',
-        email: 'alice.williams@example.com',
-        phone: '415-555-0104',
-      },
-      {
-        firstName: 'Charlie',
-        lastName: 'Brown',
-        email: 'charlie.brown@example.com',
-        phone: '415-555-0105',
-      },
-      {
-        firstName: 'Diana',
-        lastName: 'Davis',
-        email: 'diana.davis@example.com',
-        phone: '415-555-0106',
-      },
-      {
-        firstName: 'Edward',
-        lastName: 'Miller',
-        email: 'edward.miller@example.com',
-        phone: '415-555-0107',
-      },
-      {
-        firstName: 'Fiona',
-        lastName: 'Wilson',
-        email: 'fiona.wilson@example.com',
-        phone: '415-555-0108',
-      },
-      {
-        firstName: 'George',
-        lastName: 'Moore',
-        email: 'george.moore@example.com',
-        phone: '415-555-0109',
-      },
-      {
-        firstName: 'Hannah',
-        lastName: 'Taylor',
-        email: 'hannah.taylor@example.com',
-        phone: '415-555-0110',
-      },
-      {
-        firstName: 'Ian',
-        lastName: 'Anderson',
-        email: 'ian.anderson@example.com',
-        phone: '415-555-0111',
-      },
-      {
-        firstName: 'Julia',
-        lastName: 'Thomas',
-        email: 'julia.thomas@example.com',
-        phone: '415-555-0112',
-      },
-      {
-        firstName: 'Kevin',
-        lastName: 'Jackson',
-        email: 'kevin.jackson@example.com',
-        phone: '415-555-0113',
-      },
-      {
-        firstName: 'Laura',
-        lastName: 'White',
-        email: 'laura.white@example.com',
-        phone: '415-555-0114',
-      },
-      {
-        firstName: 'Michael',
-        lastName: 'Harris',
-        email: 'michael.harris@example.com',
-        phone: '415-555-0115',
-      },
-      {
-        firstName: 'Nina',
-        lastName: 'Martin',
-        email: 'nina.martin@example.com',
-        phone: '415-555-0116',
-      },
-      {
-        firstName: 'Oscar',
-        lastName: 'Thompson',
-        email: 'oscar.thompson@example.com',
-        phone: '415-555-0117',
-      },
-      {
-        firstName: 'Paula',
-        lastName: 'Garcia',
-        email: 'paula.garcia@example.com',
-        phone: '415-555-0118',
-      },
-      {
-        firstName: 'Quinn',
-        lastName: 'Martinez',
-        email: 'quinn.martinez@example.com',
-        phone: '415-555-0119',
-      },
-      {
-        firstName: 'Rachel',
-        lastName: 'Robinson',
-        email: 'rachel.robinson@example.com',
-        phone: '415-555-0120',
-      },
-    ];
-
+    // Step 5: Create regular users with Faker
+    console.log('\n5️⃣ Creating regular users with Faker...');
+    
+    // Seed Faker for consistent results
+    faker.seed(12345);
+    
+    const numberOfUsers = 20;
     const createdUsers = [];
-    for (const data of userData) {
+    const cardBrands = ['visa', 'mastercard', 'amex', 'discover'];
+    
+    for (let i = 0; i < numberOfUsers; i++) {
+      const firstName = faker.person.firstName();
+      const lastName = faker.person.lastName();
+      const email = faker.internet.email({ firstName, lastName }).toLowerCase();
+      const phone = faker.phone.number({ style: 'national' });
+
       const [existing] = await db
         .select()
         .from(users)
-        .where(eq(users.email, data.email))
+        .where(eq(users.email, email))
         .limit(1);
 
       if (existing) {
-        console.log(`  ✓ User already exists: ${data.email}`);
+        console.log(`  ✓ User already exists: ${email}`);
         createdUsers.push(existing);
-      } else {
-        const [user] = await db
-          .insert(users)
+        continue;
+      }
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          firstName,
+          lastName,
+          email,
+          phone,
+          stripeCustomerId: `cus_mock_${Math.random().toString(36).substring(7)}`,
+        })
+        .returning();
+        
+      if (user) {
+        console.log(`  ✓ Created user: ${firstName} ${lastName} (${email})`);
+        createdUsers.push(user);
+        
+        // Add a mock payment method for this user
+        const cardBrand = cardBrands[i % cardBrands.length];
+        const last4 = faker.finance.creditCardNumber({ issuer: '####' }).slice(-4);
+        const expMonth = faker.number.int({ min: 1, max: 12 });
+        const expYear = faker.number.int({ min: 2025, max: 2030 });
+        
+        const [pm] = await db
+          .insert(paymentMethods)
           .values({
-            ...data,
-            stripeCustomerId: `cus_mock_${Math.random().toString(36).substring(7)}`,
+            userId: user.id,
+            stripePaymentMethodId: `pm_mock_${Math.random().toString(36).substring(7)}`,
+            type: 'card',
+            isDefault: true,
+            cardBrand,
+            cardLast4: last4,
+            cardExpMonth: expMonth,
+            cardExpYear: expYear,
+            metadata: {},
           })
           .returning();
-        if (user) {
-          console.log(`  ✓ Created user: ${data.firstName} ${data.lastName}`);
-          createdUsers.push(user);
+          
+        if (pm) {
+          console.log(`    ✓ Added payment method: ${cardBrand} ****${last4}`);
         }
       }
     }
@@ -438,7 +359,7 @@ async function seedMock() {
           currentPeriodStart: periodStart,
           currentPeriodEnd: periodEnd,
           cancelAtPeriodEnd: false,
-          monthlyAmount: pass.monthlyAmount,
+          monthlyAmount: pass.monthlyAmount as any,
         })
         .returning();
 
@@ -602,6 +523,7 @@ async function seedMock() {
     console.log(`  - Super Admin: 1 (admin@vend.com)`);
     console.log(`  - Garage Admins: ${createdGarageAdmins.length}`);
     console.log(`  - Regular Users: ${createdUsers.length}`);
+    console.log(`  - Payment Methods: ${createdUsers.length} (mock cards)`);
     console.log(`  - Subscriptions: ${subscriptionCount}`);
     console.log(`  - Parked Logs: ${createdParked}`);
     console.log(`  - Daily Occupancy Records: ${occupancyCreated}`);

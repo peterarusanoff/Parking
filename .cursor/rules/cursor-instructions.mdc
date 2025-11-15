@@ -1,0 +1,111 @@
+---
+alwaysApply: true
+
+### MAIN 
+ - YOU ARE AN EXPERT PRINCIPLE SOFTWARE ENGINEER WHO FOLLOW ALL THE BEST PRACTICES, YOU ARE AN EXPERT IN TypeScript, bun, elysia.js, strip sdk, Drizzle ORM, React, Shadcn UI, Radix UI AND Tailwind.
+
+### Code Style and Structure
+
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes when working with stateless objects
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Structure files: exported component, subcomponents, helpers, static content, types.
+
+### Naming Conventions
+
+- Use lowercase with dashes for directories (e.g., components/auth-wizard).
+- Favor named exports for components.
+
+### TypeScript Usage
+
+- Use TypeScript for all code; prefer interfaces over types.
+- Use functional components with TypeScript interfaces.
+
+### Syntax and Formatting
+
+- Use the "function" keyword for pure functions.
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+- Use declarative JSX.
+
+### UI and Styling
+
+- Use Shadcn UI, Radix, and Tailwind for components and styling.
+- Implement responsive design with Tailwind CSS; use a mobile-first approach.
+
+### Performance Optimization
+
+- Minimize 'use client', 'useEffect', and 'setState'; favor React Server Components (RSC).
+- Wrap client components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: use WebP format, include size data, implement lazy loading.
+
+### Project Goals
+
+- Provide a type-safe, maintainable API for parking subscriptions and reporting.
+- Ensure end-to-end type safety across HTTP boundaries and database operations.
+- Maintain clean separation of concerns: routes (transport), services (billing/logic), persistence (schema/queries).
+- Support RBAC for garage admins and super admins.
+- Track parking occupancy and events to power dashboards and analytics.
+
+### Quick Start
+
+- Install dependencies: (Bun)
+  - API dev: `bun run dev`
+  - Web dev: `bun run dev:web`
+- Database:
+  - Push schema: `bun run db:push`
+  - Seed (real + Stripe): `bun run seed`
+  - Seed (mock): `bun run seed:mock`
+- Test and Quality:
+  - Typecheck: `bun run typecheck`
+  - Lint: `bun run lint`
+  - Tests: `bun run test`
+
+### Brief Architecture
+
+- Elysia app in `src/api/index.ts` registers route modules from `src/api/routes`.
+- Business logic in `src/billing` (user-Stripe sync, price changes, renewals, cancellation, seeds).
+- Database in `src/database` (Drizzle schema + client).
+- Auth/RBAC helpers in `src/api/middleware/auth.ts` with `x-user-id` mock header and role checks.
+- Parking telemetry in `parked` (event logs) and `garageDailyOccupancy` (hourly arrays).
+
+### End-to-End Type Safety
+
+- Use Elysia `t.*` schemas for route params/query/body and typed responses.
+- Use Drizzle types for DB reads/writes; convert numbers/decimals and strings/dates at boundaries.
+- Avoid `any`; only use when bridging dynamic patch objects, and constrain the scope tightly.
+- Keep the schema as the source of truth; avoid redefining domain types elsewhere.
+
+### Monetary Values (Critical)
+
+- All monetary values MUST be represented as integer cents across the entire stack:
+  - Database columns store cents as integers (e.g., 100 = $1.00).
+  - API requests and responses accept/return cents as integers.
+  - Business logic computes in cents only; do not use floating-point for currency.
+  - Stripe already uses cents (unit_amount); pass values straight through without conversion.
+- Provide small helpers when needed (e.g., `toCents`, `fromCents`) but keep internal types as integers.
+- Never format amounts for storage; only format for display at the edge (UI) when necessary.
+
+### Working Rules for AI Agents
+
+- Do not write a chat document explaining what you changed after each prompt.
+- Instead, update documentation after each change:
+  - `.cursor/source-map.md`: Update “Recent Changes” and any relevant sections.
+  - `.cursor/rules/*.md`: Update the specific route file if you changed route behavior.
+- Maintain end-to-end type safety for new code (HTTP schemas + DB types).
+- Prefer small, focused route modules; expand `src/api/routes` with new files as needed.
+- Respect RBAC: protect admin endpoints; check `garage_admin` permissions per garage where needed.
+- Validate environment with `src/env.ts` (Zod) and use `env` throughout; do not access `process.env` directly.
+
+### References
+
+- Source Map and architecture: `.cursor/rules/source-map.mdc`
+- Per-route rules: `.cursor/rules/*.md`
+- API bootstrap: `src/api/index.ts`
+- Routes: `src/api/routes/*`
+- Services: `src/billing/*`
+- DB: `src/database/*`
+- Environment: `src/env.ts`
+
+---

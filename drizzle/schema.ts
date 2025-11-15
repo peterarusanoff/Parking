@@ -1,4 +1,4 @@
-import { pgTable, index, foreignKey, unique, uuid, varchar, timestamp, boolean, numeric, text, jsonb, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, index, foreignKey, unique, uuid, varchar, timestamp, boolean, integer, text, jsonb, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const paymentStatus = pgEnum("payment_status", ['succeeded', 'failed', 'processing', 'canceled'])
@@ -19,7 +19,7 @@ export const subscriptions = pgTable("subscriptions", {
 	currentPeriodEnd: timestamp("current_period_end", { mode: 'string' }),
 	cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
 	canceledAt: timestamp("canceled_at", { mode: 'string' }),
-	monthlyAmount: numeric("monthly_amount", { precision: 10, scale:  2 }).notNull(),
+	monthlyAmount: integer("monthly_amount").notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 	renewalStatus: renewalStatus("renewal_status").default('pending'),
@@ -113,9 +113,9 @@ export const payments = pgTable("payments", {
 	stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
 	subscriptionId: uuid("subscription_id").notNull(),
 	garageId: uuid("garage_id").notNull(),
-	amount: numeric({ precision: 10, scale:  2 }).notNull(),
-	stripeFee: numeric("stripe_fee", { precision: 10, scale:  2 }).notNull(),
-	netAmount: numeric("net_amount", { precision: 10, scale:  2 }).notNull(),
+	amount: integer().notNull(),
+	stripeFee: integer("stripe_fee").notNull(),
+	netAmount: integer("net_amount").notNull(),
 	status: paymentStatus().notNull(),
 	currency: varchar({ length: 3 }).default('usd').notNull(),
 	paymentDate: timestamp("payment_date", { mode: 'string' }).notNull(),
@@ -145,8 +145,8 @@ export const payments = pgTable("payments", {
 export const passPriceHistory = pgTable("pass_price_history", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	passId: uuid("pass_id").notNull(),
-	oldPrice: numeric("old_price", { precision: 10, scale:  2 }),
-	newPrice: numeric("new_price", { precision: 10, scale:  2 }).notNull(),
+	oldPrice: integer("old_price"),
+	newPrice: integer("new_price").notNull(),
 	oldStripePriceId: varchar("old_stripe_price_id", { length: 255 }),
 	newStripePriceId: varchar("new_stripe_price_id", { length: 255 }),
 	changedBy: varchar("changed_by", { length: 255 }),

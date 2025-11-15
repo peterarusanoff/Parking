@@ -62,10 +62,7 @@ export const subscriptionRoutes = new Elysia({ prefix: '/api/subscriptions' })
     '/',
     async ({ body, set }) => {
       try {
-        const insertData: Record<string, unknown> = {
-          ...body,
-          monthlyAmount: body.monthlyAmount.toString(),
-        };
+        const insertData: Record<string, unknown> = { ...body };
         // Convert date strings to Date objects
         if (body.currentPeriodStart) {
           insertData['currentPeriodStart'] = new Date(
@@ -114,7 +111,7 @@ export const subscriptionRoutes = new Elysia({ prefix: '/api/subscriptions' })
         currentPeriodEnd: t.Optional(t.String({ format: 'date-time' })),
         cancelAtPeriodEnd: t.Optional(t.Boolean()),
         canceledAt: t.Optional(t.String({ format: 'date-time' })),
-        monthlyAmount: t.Number({ minimum: 0 }),
+        monthlyAmount: t.Integer({ minimum: 0 }),
       }),
       detail: {
         tags: ['subscriptions'],
@@ -130,7 +127,7 @@ export const subscriptionRoutes = new Elysia({ prefix: '/api/subscriptions' })
       try {
         const updateData: Record<string, unknown> = { ...body };
         if (body.monthlyAmount !== undefined) {
-          updateData['monthlyAmount'] = body.monthlyAmount.toString();
+          updateData['monthlyAmount'] = body.monthlyAmount;
         }
         if (body.currentPeriodStart) {
           updateData['currentPeriodStart'] = new Date(
@@ -190,7 +187,7 @@ export const subscriptionRoutes = new Elysia({ prefix: '/api/subscriptions' })
         currentPeriodEnd: t.Optional(t.String({ format: 'date-time' })),
         cancelAtPeriodEnd: t.Optional(t.Boolean()),
         canceledAt: t.Optional(t.String({ format: 'date-time' })),
-        monthlyAmount: t.Optional(t.Number({ minimum: 0 })),
+        monthlyAmount: t.Optional(t.Integer({ minimum: 0 })),
       }),
       detail: {
         tags: ['subscriptions'],

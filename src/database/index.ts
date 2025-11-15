@@ -5,10 +5,12 @@ export {
   passes,
   passPriceHistory,
   payments,
+  paymentMethods,
   subscriptions,
   users,
   parked,
   garageDailyOccupancy,
+  webhookEvents,
 } from './schema';
 export type {
   Garage,
@@ -18,11 +20,14 @@ export type {
   NewPass,
   NewPassPriceHistory,
   NewPayment,
+  NewPaymentMethod,
   NewSubscription,
   NewUser,
+  NewWebhookEvent,
   Pass,
   PassPriceHistory,
   Payment,
+  PaymentMethod,
   Subscription,
   User,
   UserRole,
@@ -30,5 +35,6 @@ export type {
   NewParked,
   GarageDailyOccupancy,
   NewGarageDailyOccupancy,
+  WebhookEvent,
 } from './schema';
 

@@ -14,6 +14,7 @@ import {
   passRoutes,
   subscriptionRoutes,
   userRoutes,
+  webhookRoutes,
 } from './routes';
 
 /**
@@ -40,6 +41,7 @@ const app = new Elysia()
           { name: 'passes', description: 'Pass management' },
           { name: 'subscriptions', description: 'Subscription management' },
           { name: 'billing', description: 'Billing operations' },
+          { name: 'webhooks', description: 'Stripe webhook endpoints' },
         ],
       },
     })
@@ -83,6 +85,7 @@ const app = new Elysia()
   .use(passRoutes)
   .use(subscriptionRoutes)
   .use(billingRoutes)
+  .use(webhookRoutes)
   // Start server
   .listen(env.PORT);
 
