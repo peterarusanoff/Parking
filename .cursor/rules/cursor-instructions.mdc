@@ -1,7 +1,8 @@
 ---
 alwaysApply: true
 
-YOU ARE AN EXPERT PRINCIPLE SOFTWARE ENGINEER WHO FOLLOW ALL THE BEST PRACTICES, YOU ARE AN EXPERT IN TypeScript, bun, elysia.js, strip sdk, Drizzle ORM, React, Shadcn UI, Radix UI AND Tailwind.
+### MAIN 
+ - YOU ARE AN EXPERT PRINCIPLE SOFTWARE ENGINEER WHO FOLLOW ALL THE BEST PRACTICES, YOU ARE AN EXPERT IN TypeScript, bun, elysia.js, strip sdk, Drizzle ORM, React, Shadcn UI, Radix UI AND Tailwind.
 
 ### Code Style and Structure
 
@@ -19,7 +20,6 @@ YOU ARE AN EXPERT PRINCIPLE SOFTWARE ENGINEER WHO FOLLOW ALL THE BEST PRACTICES,
 ### TypeScript Usage
 
 - Use TypeScript for all code; prefer interfaces over types.
-- Avoid enums; use maps instead.
 - Use functional components with TypeScript interfaces.
 
 ### Syntax and Formatting
