@@ -1,8 +1,17 @@
 # Next Steps HLD for an Enterprise-Grade Solution
 
+## DEV EX and low hanging fruit
+
+    - airbnb eslint
+    - prettier
+    - husky
+    - Logging: DD, Sentry, (logging platform): Focus on traceability and linking context together
+    - Read only MCP for backend API, Admin and Agents can interact with data by typing questions?
+    - more structured rules around cursor
+
 ## Current Summary
 
-This application has Stripe payment facilitation, multi-tenant architecture, and basic occupancy tracking. This document outlines the path forward to transform this application into an enterprise-grade solution by mapping current operational lifecycles, identifying necessary enhancements, and establishing a comprehensive data architecture strategy.
+This application has Stripe, multi-tenant architecture, and basic occupancy tracking. This document outlines the path forward to transform this application into an enterprise-grade solution by mapping current operational lifecycles, identifying necessary enhancements, and establishing a architecture strategy.
 
 **Key Focus Areas:**
 
