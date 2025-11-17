@@ -1,17 +1,17 @@
 # Next Steps HLD for an Enterprise-Grade Solution
 
-## DEV EX and low hanging fruit
+## DEV EX and imeadiate additions
 
     - airbnb eslint
     - prettier
     - husky
     - Logging: DD, Sentry, (logging platform): Focus on traceability and linking context together
     - Read only MCP for backend API, Admin and Agents can interact with data by typing questions?
-    - more structured rules around cursor
+    - adding to cursor documentation
 
 ## Current Summary
 
-This application has Stripe, multi-tenant architecture, and basic occupancy tracking. This document outlines the path forward to transform this application into an enterprise-grade solution by mapping current operational lifecycles, identifying necessary enhancements, and establishing a architecture strategy.
+This application has Stripe, multi-tenant architecture, and basic occupancy tracking. This document outlines the path forward to transform this application into an enterprise-grade solution by mapping current operational lifecycles, identifying necessary enhancements, and establishing an architecture strategy.
 
 **Key Focus Areas:**
 
@@ -48,11 +48,11 @@ This document will discuss how to bring the application from its current state t
 
 ### Admin Reporting:
 
-Admins should be able to see which parking makes up the majority of their profit. Have the Ability to analyze that data at a high level to see where they have missed opportunities. For example, if the garage is in an apartment building most of the parking is at night, they should be able to see their Day time occupancy, if the rate is low, with this knowledge they can bring down they day rate and fill up a little bit more and and adjusting parking rates after a certain hour so that supply = demand, growing our clients profit margins and satisfaction.
+Admins should be able to see which parking makes up the majority of their profit. Have the Ability to analyze that data at a high level to see where they have missed opportunities. For example, if the garage is in an apartment building most of the parking is at night, they should be able to see their Day time occupancy, if the rate is low, with this knowledge they can bring down the day rate and fill up a little bit more and adjusting parking rates after a certain hour so that supply = demand, growing our clients profit margins and satisfaction.
 
 ### Data Consolidation
 
-This brings me on to the next important part. As the data flows through our system a portion of it to support our architecture. UUID's, time stamps, relational data for SQL, and similar examples can be found in noSQL DB. Some data flows exist solely for the purpose of reporting. These data sets can be condensed only keeping whats needed for reporting and move the rest of the data into cold storage such as snowflake or AWS S3 buckets in csv format that can be pulled into snowflake on demand.
+This brings me on to the next important part. As the data flows through our system a portion of the data is to support our architecture. UUID's, time stamps, relational data for SQL, and similar examples can be found in noSQL DB. Some data flows exist solely for the purpose of reporting. These data sets can be condensed only keeping whats needed for reporting and move the rest of the data into cold storage such as snowflake or AWS S3 buckets in csv format that can be pulled into snowflake on demand.
 
 ### Payment Facilitation
 
@@ -81,7 +81,7 @@ Daily Batching, Reconciliation & Settlement:
 Tax Reporting & Compliance
 Monetary Reporting Requirements
 Effective treasury management ensures smooth fund operations
-Stringent security AES 256 encription on all PAN data and MultiAuth for any portal facing client data
+Stringent security AES 256 encryption on all PAN data and MultiAuth for any portal facing client data
 
 This payment facilitation architecture ensures garage operators can focus on their business while the platform handles all payment complexity, provides transparent financial reporting, and maintains complete regulatory compliance.
 
